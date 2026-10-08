@@ -8,7 +8,8 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "typecheck": "pnpm -r typecheck"
+    "typecheck": "pnpm -r typecheck",
+    "dev": "pnpm --filter @soilmon/frontend dev"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
