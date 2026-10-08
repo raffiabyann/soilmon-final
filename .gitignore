@@ -1,0 +1,33 @@
+# Private project documentation
+docs/
+CLAUDE.md
+.claude/
+
+# Separate repository
+embeded/
+
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+
+# Environment / secrets
+.env
+.env.*
+!.env.example
+
+# Vite
+.vite/
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/
+.idea/
