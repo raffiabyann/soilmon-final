@@ -1,13 +1,23 @@
-import { METRIC_KEYS } from "@soilmon/shared";
+import { Route, Routes } from "react-router";
+import { AppLayout } from "./layout/AppLayout";
+import { DashboardPage } from "./pages/DashboardPage";
+import { HistoryPage } from "./pages/HistoryPage";
+import { AlertsPage } from "./pages/AlertsPage";
+import { ReportsPage } from "./pages/ReportsPage";
+import { SettingsPage } from "./pages/SettingsPage";
+import { NotFoundPage } from "./pages/NotFoundPage";
 
 export function App() {
   return (
-    <main className="min-h-screen bg-green-50 p-8">
-      <h1 className="text-3xl font-bold text-green-800">SoilMon</h1>
-      <p className="mt-2 text-green-700">Dashboard sedang dibangun.</p>
-      <p className="mt-4 text-sm text-gray-600">
-        Metric terdaftar dari @soilmon/shared: {METRIC_KEYS.length}
-      </p>
-    </main>
+    <Routes>
+      <Route element={<AppLayout />}>
+        <Route index element={<DashboardPage />} />
+        <Route path="history" element={<HistoryPage />} />
+        <Route path="alerts" element={<AlertsPage />} />
+        <Route path="reports" element={<ReportsPage />} />
+        <Route path="settings" element={<SettingsPage />} />
+        <Route path="*" element={<NotFoundPage />} />
+      </Route>
+    </Routes>
   );
 }
