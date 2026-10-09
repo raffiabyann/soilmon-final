@@ -36,3 +36,10 @@ export function formatWeekdayWib(iso: string | Date): string {
     new Date(iso),
   );
 }
+
+/** Tanggal pendek menurut WIB, contoh "13 Okt". Untuk kolom waktu yang melewati beberapa hari. */
+export function formatShortDateWib(iso: string | Date): string {
+  return new Intl.DateTimeFormat("id-ID", { timeZone: WIB, day: "numeric", month: "short" }).format(
+    new Date(iso),
+  );
+}

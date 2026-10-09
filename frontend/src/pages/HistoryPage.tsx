@@ -2,9 +2,11 @@ import { getMetricStatus, type MetricKey } from "@soilmon/shared";
 import { History } from "lucide-react";
 import { useState } from "react";
 import { Card } from "../components/Card";
+import { CardLabel } from "../components/CardLabel";
 import { MetricStatusBadge } from "../components/MetricStatusBadge";
+import { RangeGauge } from "../components/RangeGauge";
 import { formatValue, getMetric } from "../lib/metrics";
-import { formatTimeWib } from "../lib/time";
+import { formatShortDateWib, formatTimeWib } from "../lib/time";
 import { mockMetrics, mockNodes } from "../mocks/data";
 import { mockReadings } from "../mocks/telemetry";
 
@@ -30,9 +32,9 @@ export function HistoryPage() {
   return (
     <Card>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="flex items-center gap-2 font-semibold text-ink">
-          <History className="size-4" /> Riwayat Pembacaan Sensor
-        </h2>
+        <CardLabel>
+          <History className="size-3.5" /> Riwayat pembacaan sensor
+        </CardLabel>
         <div className="flex items-center gap-3">
           <select
             className={selectClass}
@@ -69,13 +71,14 @@ export function HistoryPage() {
       </div>
 
       <table className="w-full text-left text-sm">
-        <thead className="border-b border-line text-xs uppercase text-ink-muted">
+        <thead className="border-b border-line text-xs text-ink-muted">
           <tr>
-            <th className="py-3">Waktu</th>
-            <th>Node</th>
-            <th>Metrik</th>
-            <th>Nilai</th>
-            <th>Status</th>
+            <th className="py-3 font-medium">Waktu</th>
+            <th className="font-medium">Node</th>
+            <th className="font-medium">Metrik</th>
+            <th className="font-medium">Posisi terhadap batas normal</th>
+            <th className="pr-6 text-right font-medium">Nilai</th>
+            <th className="font-medium">Status</th>
           </tr>
         </thead>
         <tbody>
@@ -86,10 +89,18 @@ export function HistoryPage() {
                 key={`${r.nodeCode}-${r.metricKey}-${r.recordedAt}`}
                 className="border-b border-line/70 hover:bg-canvas"
               >
-                <td className="py-3 text-ink-muted">{formatTimeWib(r.recordedAt)}</td>
-                <td className="font-medium text-ink">{r.nodeCode}</td>
-                <td>{metric?.label ?? r.metricKey}</td>
-                <td>{formatValue(r.value, r.metricKey)}</td>
+                <td className="py-3 font-mono text-xs text-ink-muted tabular-nums">
+                  {formatShortDateWib(r.recordedAt)}{" "}
+                  {formatTimeWib(r.recordedAt).replace(" WIB", "")}
+                </td>
+                <td className="font-mono text-xs font-semibold text-ink">{r.nodeCode}</td>
+                <td className="text-stone-600">{metric?.label ?? r.metricKey}</td>
+                <td>
+                  <RangeGauge value={r.value} metric={metric} />
+                </td>
+                <td className="pr-6 text-right font-semibold text-ink tabular-nums">
+                  {formatValue(r.value, r.metricKey)}
+                </td>
                 <td>
                   <MetricStatusBadge
                     status={metric ? getMetricStatus(r.value, metric) : "unknown"}
