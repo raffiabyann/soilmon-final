@@ -5,6 +5,7 @@ import { AlertItem } from "../components/AlertItem";
 import { Card } from "../components/Card";
 import { NodeCard } from "../components/NodeCard";
 import { StatCard } from "../components/StatCard";
+import { TrendSection } from "../components/TrendSection";
 import { formatTimeWib } from "../lib/time";
 import { MOCK_NOW, mockAlerts, mockGateways, mockIrrigationEvents, mockNodes } from "../mocks/data";
 
@@ -50,6 +51,8 @@ export function DashboardPage() {
           }
         />
       </div>
+
+      <TrendSection />
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {mockNodes.map((node) => (
