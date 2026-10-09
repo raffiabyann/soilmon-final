@@ -1,55 +1,21 @@
-import { isOnline } from "@soilmon/shared";
-import { Bell, Droplets, Router, Wifi } from "lucide-react";
+import { Bell } from "lucide-react";
 import { Link } from "react-router";
 import { AlertItem } from "../components/AlertItem";
 import { Card } from "../components/Card";
+import { IrrigationCard } from "../components/IrrigationCard";
 import { NodeCard } from "../components/NodeCard";
-import { StatCard } from "../components/StatCard";
+import { SystemStatusCard } from "../components/SystemStatusCard";
 import { TrendSection } from "../components/TrendSection";
-import { formatTimeWib } from "../lib/time";
-import { MOCK_NOW, mockAlerts, mockGateways, mockIrrigationEvents, mockNodes } from "../mocks/data";
+import { MOCK_NOW, mockAlerts, mockNodes } from "../mocks/data";
 
 export function DashboardPage() {
-  const gateway = mockGateways[0];
-  const gatewayOnline = gateway ? isOnline(gateway.lastSeenAt, MOCK_NOW) : false;
-  const onlineNodes = mockNodes.filter((n) => isOnline(n.lastSeenAt, MOCK_NOW)).length;
-  const activeAlerts = mockAlerts.filter((a) => a.resolvedAt === null);
-  const lastIrrigation = mockIrrigationEvents[0];
-
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <StatCard
-          icon={Wifi}
-          label="Gateway"
-          value={gatewayOnline ? "Online" : "Offline"}
-          hint={`Last sync ${gateway?.lastSeenAt ? formatTimeWib(gateway.lastSeenAt) : "-"}`}
-          tone={gatewayOnline ? "green" : "red"}
-        />
-        <StatCard
-          icon={Router}
-          label="Node aktif"
-          value={`${onlineNodes} / ${mockNodes.length}`}
-          hint="Online dalam 45 menit terakhir"
-          tone={onlineNodes === mockNodes.length ? "green" : "red"}
-        />
-        <StatCard
-          icon={Bell}
-          label="Alert aktif"
-          value={String(activeAlerts.length)}
-          hint="Belum kembali normal"
-          tone={activeAlerts.length > 0 ? "red" : "green"}
-        />
-        <StatCard
-          icon={Droplets}
-          label="Penyiraman terakhir"
-          value={lastIrrigation ? `${lastIrrigation.volumeLiters} L` : "-"}
-          hint={
-            lastIrrigation
-              ? `${lastIrrigation.nodeCode} · ${formatTimeWib(lastIrrigation.startedAt)}`
-              : "Belum ada"
-          }
-        />
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+        <div className="lg:col-span-2">
+          <SystemStatusCard />
+        </div>
+        <IrrigationCard />
       </div>
 
       <TrendSection />

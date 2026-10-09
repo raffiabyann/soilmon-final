@@ -19,3 +19,20 @@ export function formatDateWib(iso: string | Date): string {
     year: "numeric",
   }).format(new Date(iso));
 }
+
+/** Kunci tanggal menurut WIB, contoh "2026-10-14". Dipakai untuk mengelompokkan per hari. */
+export function dateKeyWib(iso: string | Date): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: WIB,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date(iso));
+}
+
+/** Nama hari singkat menurut WIB, contoh "Rab". */
+export function formatWeekdayWib(iso: string | Date): string {
+  return new Intl.DateTimeFormat("id-ID", { timeZone: WIB, weekday: "short" }).format(
+    new Date(iso),
+  );
+}

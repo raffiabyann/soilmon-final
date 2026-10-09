@@ -96,6 +96,10 @@ export const mockAlerts: Alert[] = [
   },
 ];
 
+/**
+ * Riwayat penyiraman contoh 7 hari (terbaru di atas).
+ * Volume = debit pompa node × durasi (N01 30 ml/s, N02 28 ml/s).
+ */
 export const mockIrrigationEvents: IrrigationEvent[] = [
   {
     id: 15,
@@ -103,6 +107,78 @@ export const mockIrrigationEvents: IrrigationEvent[] = [
     startedAt: "2026-10-13T22:59:45Z",
     durationSeconds: 15,
     volumeLiters: 0.45,
+    triggerType: "auto",
+  },
+  {
+    id: 14,
+    nodeCode: "N02",
+    startedAt: "2026-10-13T09:10:00Z",
+    durationSeconds: 20,
+    volumeLiters: 0.56,
+    triggerType: "auto",
+  },
+  {
+    id: 13,
+    nodeCode: "N01",
+    startedAt: "2026-10-12T23:05:00Z",
+    durationSeconds: 20,
+    volumeLiters: 0.6,
+    triggerType: "auto",
+  },
+  {
+    id: 12,
+    nodeCode: "N01",
+    startedAt: "2026-10-12T09:30:00Z",
+    durationSeconds: 15,
+    volumeLiters: 0.45,
+    triggerType: "manual",
+  },
+  {
+    id: 11,
+    nodeCode: "N02",
+    startedAt: "2026-10-11T23:00:00Z",
+    durationSeconds: 25,
+    volumeLiters: 0.7,
+    triggerType: "auto",
+  },
+  {
+    id: 10,
+    nodeCode: "N01",
+    startedAt: "2026-10-10T23:02:00Z",
+    durationSeconds: 30,
+    volumeLiters: 0.9,
+    triggerType: "auto",
+  },
+  {
+    id: 9,
+    nodeCode: "N01",
+    startedAt: "2026-10-09T23:10:00Z",
+    durationSeconds: 20,
+    volumeLiters: 0.6,
+    triggerType: "auto",
+  },
+  {
+    id: 8,
+    nodeCode: "N02",
+    startedAt: "2026-10-09T08:45:00Z",
+    durationSeconds: 15,
+    volumeLiters: 0.42,
+    triggerType: "auto",
+  },
+  {
+    id: 7,
+    nodeCode: "N01",
+    startedAt: "2026-10-08T23:00:00Z",
+    durationSeconds: 25,
+    volumeLiters: 0.75,
+    triggerType: "auto",
+  },
+  {
+    id: 6,
+    nodeCode: "N01",
+    startedAt: "2026-10-07T23:20:00Z",
+    durationSeconds: 20,
+    volumeLiters: 0.6,
     triggerType: "auto",
   },
 ];
