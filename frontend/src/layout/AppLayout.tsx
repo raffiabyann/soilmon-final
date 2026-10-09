@@ -4,9 +4,9 @@ import { TopBar } from "./TopBar";
 
 export function AppLayout() {
   return (
-    <div className="flex min-h-screen bg-gray-950 text-gray-200">
+    <div className="flex min-h-screen gap-6 bg-canvas p-4 text-ink">
       <Sidebar />
-      <main className="flex-1 px-8 py-6">
+      <main className="min-w-0 flex-1 py-2 pr-2">
         <TopBar />
         <div className="pt-6">
           <Outlet />

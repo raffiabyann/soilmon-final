@@ -11,13 +11,13 @@ export function GatewayStatusCard() {
   const online = isOnline(gateway.lastSeenAt, MOCK_NOW);
 
   return (
-    <div className="rounded-xl border border-white/15 bg-white/10 p-4 text-sm">
-      <div className="flex items-center gap-2 font-semibold">
-        <span className={`size-2 rounded-full ${online ? "bg-green-300" : "bg-red-400"}`} />
+    <div className="rounded-xl bg-brand-soft p-4 text-sm">
+      <div className="flex items-center gap-2 font-semibold text-ink">
+        <span className={`size-2 rounded-full ${online ? "bg-green-600" : "bg-red-600"}`} />
         Gateway {online ? "Online" : "Offline"}
       </div>
-      <p className="ml-4 text-xs text-green-100/70">{gateway.name}</p>
-      <div className="mt-3 flex items-center justify-between text-xs text-green-50/90">
+      <p className="ml-4 text-xs text-ink-muted">{gateway.name}</p>
+      <div className="mt-3 flex items-center justify-between text-xs text-stone-600">
         <span className="flex items-center gap-1.5">
           <Clock className="size-3.5" />
           Last Sync

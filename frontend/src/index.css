@@ -1,1 +1,18 @@
 @import "tailwindcss";
+
+/*
+ * Warna tema "Tanah & Daun". Semua komponen memakai nama peran ini
+ * (bg-canvas, text-ink, bg-brand, ...), bukan kode warna langsung.
+ * Ganti tema cukup di sini.
+ */
+@theme {
+  --color-canvas: #faf7f2;
+  --color-surface: #ffffff;
+  --color-line: #e7e1d7;
+  --color-ink: #292524;
+  --color-ink-muted: #78716c;
+  --color-brand: #047857;
+  --color-brand-soft: #ecfdf5;
+  --color-accent: #a16207;
+  --color-accent-soft: #fef9c3;
+}

@@ -15,7 +15,7 @@ export function TrendSection() {
   return (
     <Card>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="flex items-center gap-2 font-semibold text-gray-100">
+        <h2 className="flex items-center gap-2 font-semibold text-ink">
           <ChartLine className="size-4" /> Tren 24 Jam
         </h2>
         <div className="flex gap-2">
@@ -26,8 +26,8 @@ export function TrendSection() {
               onClick={() => setNodeCode(n.code)}
               className={`rounded-full border px-3 py-1 text-xs font-medium ${
                 nodeCode === n.code
-                  ? "border-green-600 bg-green-700 text-white"
-                  : "border-gray-700 text-gray-400 hover:bg-gray-800"
+                  ? "border-brand bg-brand text-white"
+                  : "border-line text-ink-muted hover:bg-canvas"
               }`}
             >
               {n.code} · {n.name}

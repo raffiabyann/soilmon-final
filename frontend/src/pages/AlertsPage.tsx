@@ -22,7 +22,7 @@ export function AlertsPage() {
   return (
     <div className="space-y-6">
       <Card>
-        <h2 className="mb-3 flex items-center gap-2 font-semibold text-gray-100">
+        <h2 className="mb-3 flex items-center gap-2 font-semibold text-ink">
           <Bell className="size-4" /> Riwayat Alert
         </h2>
         <div className="mb-2 flex gap-2">
@@ -33,8 +33,8 @@ export function AlertsPage() {
               onClick={() => setFilter(f.value)}
               className={`rounded-full border px-3 py-1 text-xs font-medium ${
                 filter === f.value
-                  ? "border-green-600 bg-green-700 text-white"
-                  : "border-gray-700 text-gray-400 hover:bg-gray-800"
+                  ? "border-brand bg-brand text-white"
+                  : "border-line text-ink-muted hover:bg-canvas"
               }`}
             >
               {f.label} <span className="ml-1 opacity-70">{mockAlerts.filter(f.match).length}</span>
@@ -42,7 +42,7 @@ export function AlertsPage() {
           ))}
         </div>
         {shown.length === 0 ? (
-          <p className="py-6 text-center text-sm text-gray-500">Tidak ada alert.</p>
+          <p className="py-6 text-center text-sm text-ink-muted">Tidak ada alert.</p>
         ) : (
           <ul>
             {shown.map((alert) => (
@@ -53,15 +53,15 @@ export function AlertsPage() {
       </Card>
 
       <Card>
-        <h2 className="flex items-center gap-2 font-semibold text-gray-100">
+        <h2 className="flex items-center gap-2 font-semibold text-ink">
           <Droplets className="size-4" /> Riwayat Penyiraman
         </h2>
-        <p className="mb-3 text-xs text-gray-500">
+        <p className="mb-3 text-xs text-ink-muted">
           Pompa di node menyala otomatis saat tanah kering. Volume adalah perkiraan (debit ×
           durasi).
         </p>
         <table className="w-full text-left text-sm">
-          <thead className="border-b border-gray-800 text-xs uppercase text-gray-500">
+          <thead className="border-b border-line text-xs uppercase text-ink-muted">
             <tr>
               <th className="py-3">Waktu</th>
               <th>Node</th>
@@ -72,11 +72,11 @@ export function AlertsPage() {
           </thead>
           <tbody>
             {mockIrrigationEvents.map((e) => (
-              <tr key={e.id} className="border-b border-gray-800/60">
-                <td className="py-3 text-gray-400">
+              <tr key={e.id} className="border-b border-line/70">
+                <td className="py-3 text-ink-muted">
                   {formatDateWib(e.startedAt)}, {formatTimeWib(e.startedAt)}
                 </td>
-                <td className="font-medium text-gray-100">{e.nodeCode}</td>
+                <td className="font-medium text-ink">{e.nodeCode}</td>
                 <td>{e.durationSeconds} detik</td>
                 <td>{e.volumeLiters} L</td>
                 <td>{e.triggerType === "auto" ? "Otomatis" : "Manual"}</td>

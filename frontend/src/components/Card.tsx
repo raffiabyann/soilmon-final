@@ -5,10 +5,10 @@ interface CardProps {
   className?: string;
 }
 
-/** Kotak dasar gaya gelap; dipakai semua halaman supaya tampilannya seragam. */
+/** Kotak dasar tema terang; dipakai semua halaman supaya tampilannya seragam. */
 export function Card({ children, className = "" }: CardProps) {
   return (
-    <div className={`rounded-xl border border-gray-800 bg-gray-900 p-5 ${className}`}>
+    <div className={`rounded-2xl border border-line bg-surface p-5 shadow-sm ${className}`}>
       {children}
     </div>
   );

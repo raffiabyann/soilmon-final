@@ -62,10 +62,10 @@ export function DashboardPage() {
 
       <Card>
         <div className="mb-2 flex items-center justify-between">
-          <h2 className="flex items-center gap-2 font-semibold text-gray-100">
+          <h2 className="flex items-center gap-2 font-semibold text-ink">
             <Bell className="size-4" /> Recent Alerts
           </h2>
-          <Link to="/alerts" className="text-xs text-green-400 hover:underline">
+          <Link to="/alerts" className="text-xs text-brand hover:underline">
             Lihat semua →
           </Link>
         </div>

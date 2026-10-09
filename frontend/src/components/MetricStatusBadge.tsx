@@ -1,10 +1,10 @@
 import type { MetricStatus } from "@soilmon/shared";
 
 const STYLE: Record<MetricStatus, { label: string; className: string }> = {
-  ok: { label: "OK", className: "bg-green-500/15 text-green-400" },
-  low: { label: "Rendah", className: "bg-red-500/15 text-red-400" },
-  high: { label: "Tinggi", className: "bg-red-500/15 text-red-400" },
-  unknown: { label: "-", className: "bg-gray-800 text-gray-400" },
+  ok: { label: "OK", className: "bg-green-50 text-green-700" },
+  low: { label: "Rendah", className: "bg-red-50 text-red-700" },
+  high: { label: "Tinggi", className: "bg-red-50 text-red-700" },
+  unknown: { label: "-", className: "bg-stone-100 text-ink-muted" },
 };
 
 export function MetricStatusBadge({ status }: { status: MetricStatus }) {

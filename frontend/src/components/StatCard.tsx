@@ -10,9 +10,9 @@ interface StatCardProps {
 }
 
 const TONE_CLASS = {
-  green: "bg-green-500/15 text-green-400",
-  red: "bg-red-500/15 text-red-400",
-  blue: "bg-blue-500/15 text-blue-400",
+  green: "bg-green-50 text-green-700",
+  red: "bg-red-50 text-red-700",
+  blue: "bg-sky-50 text-sky-700",
 } as const;
 
 export function StatCard({ icon: Icon, label, value, hint, tone = "blue" }: StatCardProps) {
@@ -22,9 +22,9 @@ export function StatCard({ icon: Icon, label, value, hint, tone = "blue" }: Stat
         <Icon className="size-6" />
       </div>
       <div>
-        <p className="text-xs text-gray-400">{label}</p>
-        <p className="text-2xl font-bold text-gray-100">{value}</p>
-        <p className="text-xs text-gray-500">{hint}</p>
+        <p className="text-xs text-ink-muted">{label}</p>
+        <p className="text-2xl font-bold text-ink">{value}</p>
+        <p className="text-xs text-ink-muted">{hint}</p>
       </div>
     </Card>
   );

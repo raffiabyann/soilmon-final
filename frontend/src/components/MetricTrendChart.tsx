@@ -17,14 +17,14 @@ interface MetricTrendChartProps {
   metricKey: MetricKey;
 }
 
-/** Warna garis: slot biru palet referensi untuk permukaan gelap (lolos validator dataviz). */
-const LINE_COLOR = "#3987e5";
-const AXIS_COLOR = "#6b7280";
-const GRID_COLOR = "#1f2937";
+/** Warna garis: slot biru palet referensi untuk permukaan terang (lolos validator dataviz). */
+const LINE_COLOR = "#2a78d6";
+const AXIS_COLOR = "#a8a29e";
+const GRID_COLOR = "#f0ebe3";
 
 /**
  * Satu grafik untuk satu metrik (small multiples, bukan dua sumbu).
- * Pita abu-abu = batas normal METRIC, supaya terlihat kapan nilai keluar batas.
+ * Pita hijau = batas normal METRIC, supaya terlihat kapan nilai keluar batas.
  */
 export function MetricTrendChart({ readings, metricKey }: MetricTrendChartProps) {
   const metric = getMetric(metricKey);
@@ -35,10 +35,10 @@ export function MetricTrendChart({ readings, metricKey }: MetricTrendChartProps)
 
   return (
     <div>
-      <p className="text-sm font-semibold text-gray-100">{metric?.label ?? metricKey}</p>
-      <p className="mb-2 text-xs text-gray-500">
+      <p className="text-sm font-semibold text-ink">{metric?.label ?? metricKey}</p>
+      <p className="mb-2 text-xs text-ink-muted">
         {metric?.normalMin !== null || metric?.normalMax !== null
-          ? `Pita abu-abu: batas normal ${metric?.normalMin ?? "-"} sampai ${metric?.normalMax ?? "-"}`
+          ? `Pita hijau: batas normal ${metric?.normalMin ?? "-"} sampai ${metric?.normalMax ?? "-"}`
           : "Belum ada batas normal"}
       </p>
       <div className="h-48">
@@ -49,8 +49,8 @@ export function MetricTrendChart({ readings, metricKey }: MetricTrendChartProps)
               <ReferenceArea
                 y1={metric.normalMin ?? undefined}
                 y2={metric.normalMax ?? undefined}
-                fill="#9ca3af"
-                fillOpacity={0.08}
+                fill="#047857"
+                fillOpacity={0.07}
                 ifOverflow="extendDomain"
               />
             )}
@@ -71,13 +71,13 @@ export function MetricTrendChart({ readings, metricKey }: MetricTrendChartProps)
             <Tooltip
               cursor={{ stroke: AXIS_COLOR, strokeDasharray: "3 3" }}
               contentStyle={{
-                backgroundColor: "#111827",
-                border: "1px solid #374151",
+                backgroundColor: "#ffffff",
+                border: "1px solid #e7e1d7",
                 borderRadius: 8,
                 fontSize: 12,
               }}
-              labelStyle={{ color: "#f3f4f6" }}
-              itemStyle={{ color: "#d1d5db" }}
+              labelStyle={{ color: "#292524" }}
+              itemStyle={{ color: "#57534e" }}
               labelFormatter={(label) => `${String(label)} WIB`}
               formatter={(value) => [formatValue(Number(value), metricKey), metric?.label ?? ""]}
             />
@@ -87,7 +87,7 @@ export function MetricTrendChart({ readings, metricKey }: MetricTrendChartProps)
               stroke={LINE_COLOR}
               strokeWidth={2}
               dot={false}
-              activeDot={{ r: 4, stroke: "#111827", strokeWidth: 2 }}
+              activeDot={{ r: 4, stroke: "#ffffff", strokeWidth: 2 }}
             />
           </LineChart>
         </ResponsiveContainer>

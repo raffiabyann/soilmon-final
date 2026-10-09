@@ -20,10 +20,10 @@ const MAIN_METRICS: { key: MetricKey; label: string; unit: string }[] = [
 function valueClass(key: MetricKey, value: number | undefined): string {
   const metric = getMetric(key);
   if (value === undefined || !metric) {
-    return "text-gray-100";
+    return "text-ink";
   }
   const status = getMetricStatus(value, metric);
-  return status === "low" || status === "high" ? "text-red-400" : "text-gray-100";
+  return status === "low" || status === "high" ? "text-red-600" : "text-ink";
 }
 
 export function NodeCard({ node, now }: NodeCardProps) {
@@ -38,29 +38,29 @@ export function NodeCard({ node, now }: NodeCardProps) {
             <Cpu className="size-5" />
           </div>
           <div>
-            <p className="font-semibold text-gray-100">{node.code}</p>
-            <p className="text-xs text-gray-400">{node.name}</p>
+            <p className="font-semibold text-ink">{node.code}</p>
+            <p className="text-xs text-ink-muted">{node.name}</p>
           </div>
         </div>
         <StatusBadge online={online} />
       </div>
 
-      <div className="mt-5 grid grid-cols-3 divide-x divide-gray-800 text-center">
+      <div className="mt-5 grid grid-cols-3 divide-x divide-line text-center">
         {MAIN_METRICS.map((m) => {
           const value = node.latest[m.key];
           return (
             <div key={m.key}>
               <p className={`text-2xl font-bold ${valueClass(m.key, value)}`}>
                 {value ?? "-"}
-                <span className="text-sm font-normal text-gray-400">{m.unit}</span>
+                <span className="text-sm font-normal text-ink-muted">{m.unit}</span>
               </p>
-              <p className="text-xs text-gray-400">{m.label}</p>
+              <p className="text-xs text-ink-muted">{m.label}</p>
             </div>
           );
         })}
       </div>
 
-      <div className="mt-5 flex items-center justify-between border-t border-gray-800 pt-3 text-xs text-gray-300">
+      <div className="mt-5 flex items-center justify-between border-t border-line pt-3 text-xs text-stone-600">
         <span className={`flex items-center gap-1.5 ${valueClass("battery_percent", battery)}`}>
           <BatteryMedium className="size-4" />
           {battery ?? "-"}%

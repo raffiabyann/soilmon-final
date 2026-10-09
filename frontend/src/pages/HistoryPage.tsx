@@ -12,7 +12,7 @@ const PAGE_SIZE = 20;
 const ALL = "all";
 
 const selectClass =
-  "rounded-lg border border-gray-700 bg-gray-950 px-3 py-2 text-sm text-gray-200 focus:border-green-500 focus:outline-none";
+  "rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink focus:border-brand focus:outline-none";
 
 export function HistoryPage() {
   const [nodeFilter, setNodeFilter] = useState<string>(ALL);
@@ -30,7 +30,7 @@ export function HistoryPage() {
   return (
     <Card>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h2 className="flex items-center gap-2 font-semibold text-gray-100">
+        <h2 className="flex items-center gap-2 font-semibold text-ink">
           <History className="size-4" /> Riwayat Pembacaan Sensor
         </h2>
         <div className="flex items-center gap-3">
@@ -64,12 +64,12 @@ export function HistoryPage() {
               </option>
             ))}
           </select>
-          <span className="text-xs text-gray-400">{filtered.length} data</span>
+          <span className="text-xs text-ink-muted">{filtered.length} data</span>
         </div>
       </div>
 
       <table className="w-full text-left text-sm">
-        <thead className="border-b border-gray-800 text-xs uppercase text-gray-500">
+        <thead className="border-b border-line text-xs uppercase text-ink-muted">
           <tr>
             <th className="py-3">Waktu</th>
             <th>Node</th>
@@ -84,10 +84,10 @@ export function HistoryPage() {
             return (
               <tr
                 key={`${r.nodeCode}-${r.metricKey}-${r.recordedAt}`}
-                className="border-b border-gray-800/60 hover:bg-gray-800/40"
+                className="border-b border-line/70 hover:bg-canvas"
               >
-                <td className="py-3 text-gray-400">{formatTimeWib(r.recordedAt)}</td>
-                <td className="font-medium text-gray-100">{r.nodeCode}</td>
+                <td className="py-3 text-ink-muted">{formatTimeWib(r.recordedAt)}</td>
+                <td className="font-medium text-ink">{r.nodeCode}</td>
                 <td>{metric?.label ?? r.metricKey}</td>
                 <td>{formatValue(r.value, r.metricKey)}</td>
                 <td>
@@ -104,18 +104,18 @@ export function HistoryPage() {
       <div className="mt-4 flex items-center justify-between text-sm">
         <button
           type="button"
-          className="rounded-lg border border-gray-700 px-3 py-1.5 disabled:opacity-40"
+          className="rounded-lg border border-line px-3 py-1.5 disabled:opacity-40"
           disabled={page === 1}
           onClick={() => setPage(page - 1)}
         >
           ← Prev
         </button>
-        <span className="text-gray-400">
+        <span className="text-ink-muted">
           Halaman {page} dari {totalPages}
         </span>
         <button
           type="button"
-          className="rounded-lg border border-gray-700 px-3 py-1.5 disabled:opacity-40"
+          className="rounded-lg border border-line px-3 py-1.5 disabled:opacity-40"
           disabled={page === totalPages}
           onClick={() => setPage(page + 1)}
         >
