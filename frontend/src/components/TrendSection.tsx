@@ -16,8 +16,8 @@ export function TrendSection() {
   return (
     <section className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="flex items-center gap-2 font-semibold text-ink">
-          <ChartLine className="size-4" /> Tren 24 Jam
+        <h2 className="flex items-center gap-2 font-mono text-xs font-semibold tracking-wider text-ink uppercase">
+          <ChartLine className="size-4" /> Tren 24 jam
         </h2>
         <div className="flex gap-2">
           {mockNodes.map((n) => (

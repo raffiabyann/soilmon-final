@@ -1,6 +1,7 @@
 import { Droplets } from "lucide-react";
 import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 import { Card } from "./Card";
+import { CardLabel } from "./CardLabel";
 import { dailyIrrigationTotals, type DailyIrrigation } from "../lib/irrigation";
 import { formatDateWib, formatTimeWib } from "../lib/time";
 import { MOCK_NOW, mockIrrigationEvents } from "../mocks/data";
@@ -23,9 +24,12 @@ export function IrrigationCard() {
   return (
     <Card padded={false} className="flex h-full flex-col overflow-hidden">
       <div className="relative flex-1 bg-[radial-gradient(var(--color-line)_1px,transparent_1px)] [background-size:14px_14px] px-4 pt-4">
+        <div className="mb-2">
+          <CardLabel>Air penyiraman · 7 hari</CardLabel>
+        </div>
         <div className="flex gap-2">
           <span className="rounded-full border border-line bg-surface px-2.5 py-0.5 text-xs font-medium text-ink">
-            7 hari · {totalLiters} L
+            {totalLiters} L
           </span>
           <span className="rounded-full border border-line bg-surface px-2.5 py-0.5 text-xs font-medium text-ink">
             {totalCount} kali

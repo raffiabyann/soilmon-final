@@ -39,7 +39,7 @@ export function Sidebar() {
         </div>
       </div>
 
-      <p className="px-5 pb-3 text-[11px] font-semibold tracking-wider text-ink-muted uppercase">
+      <p className="px-5 pb-3 font-mono text-[11px] tracking-wider text-ink-muted uppercase">
         Menu
       </p>
       <nav
@@ -52,7 +52,7 @@ export function Sidebar() {
             className="pointer-events-none absolute inset-x-0 top-0 h-11 transition-transform duration-300 ease-[cubic-bezier(0.34,1.4,0.64,1)] motion-reduce:transition-none"
             style={{ transform: `translateY(${markerIndex * ITEM_HEIGHT}px)` }}
           >
-            <span className="absolute top-1/2 -left-[5.5px] size-2.5 -translate-y-1/2 rotate-45 rounded-[2px] bg-brand" />
+            <span className="absolute top-1/2 left-[-5.5px] size-2.5 -translate-y-1/2 rotate-45 rounded-xs bg-brand" />
             <span className="absolute inset-y-1 right-0 left-3 rounded-lg bg-brand-soft" />
           </div>
         )}
@@ -71,7 +71,7 @@ export function Sidebar() {
               }`
             }
           >
-            <item.icon className="size-[18px]" />
+            <item.icon className="size-4.5" />
             {item.label}
             {item.path === "/alerts" && openAlertCount > 0 && (
               <span className="ml-auto rounded-full bg-red-50 px-1.5 text-[11px] font-semibold text-red-700">

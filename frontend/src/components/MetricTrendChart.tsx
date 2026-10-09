@@ -10,6 +10,7 @@ import {
   YAxis,
 } from "recharts";
 import { Card } from "./Card";
+import { CardLabel } from "./CardLabel";
 import { MetricStatusBadge } from "./MetricStatusBadge";
 import { formatValue, getMetric } from "../lib/metrics";
 import { formatTimeWib } from "../lib/time";
@@ -58,7 +59,7 @@ export function MetricTrendChart({ readings, metricKey, latest }: MetricTrendCha
     <Card padded={false} className="flex flex-col overflow-hidden">
       <div className="flex items-start justify-between gap-3 px-5 pt-5">
         <div>
-          <p className="text-sm font-semibold text-ink">{metric?.label ?? metricKey}</p>
+          <CardLabel>{metric?.label ?? metricKey}</CardLabel>
           <p className="mt-1 text-4xl font-semibold text-ink">
             {latest ?? "-"}
             {metric?.unit && (

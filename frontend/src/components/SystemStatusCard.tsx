@@ -2,6 +2,7 @@ import { isOnline } from "@soilmon/shared";
 import type { LucideIcon } from "lucide-react";
 import { Bell, Router, Wifi } from "lucide-react";
 import { Card } from "./Card";
+import { CardLabel } from "./CardLabel";
 import { formatTimeWib } from "../lib/time";
 import { MOCK_NOW, mockAlerts, mockGateways, mockNodes } from "../mocks/data";
 
@@ -60,8 +61,8 @@ export function SystemStatusCard() {
   return (
     <Card className="flex h-full flex-col justify-between gap-6">
       <div>
-        <p className="text-sm font-medium text-ink-muted">Kondisi kebun saat ini</p>
-        <p className="mt-1 text-2xl font-semibold text-ink">
+        <CardLabel>Kondisi kebun saat ini</CardLabel>
+        <p className="mt-2 text-2xl font-semibold text-ink">
           {allGood ? "Semua normal" : notes.join(" · ")}
         </p>
       </div>
@@ -69,10 +70,10 @@ export function SystemStatusCard() {
       <div className="grid grid-cols-3 divide-x divide-line">
         {segments.map((s) => (
           <div key={s.label} className="px-4 first:pl-0 last:pr-0">
-            <p className="flex items-center gap-1.5 text-xs text-ink-muted">
+            <CardLabel>
               <s.icon className="size-3.5" />
               {s.label}
-            </p>
+            </CardLabel>
             <p className="mt-1 text-3xl font-semibold text-ink">{s.value}</p>
             <p className="mt-1 flex items-center gap-1.5 text-xs text-ink-muted">
               <span className={`size-1.5 rounded-full ${s.good ? "bg-green-600" : "bg-red-600"}`} />
