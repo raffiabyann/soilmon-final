@@ -6,6 +6,9 @@ import type { Alert, Gateway, IrrigationEvent, Metric, NodeSummary } from "@soil
  * Hapus file ini saat frontend sudah tersambung ke backend (F6).
  */
 
+/** Waktu "sekarang" tetap untuk data contoh, supaya tampilan stabil. Hapus di F6. */
+export const MOCK_NOW = new Date("2026-10-14T03:20:00Z");
+
 export const mockGateways: Gateway[] = [
   { code: "GW01", name: "Gateway Kebun", lastSeenAt: "2026-10-14T03:15:00Z" },
 ];

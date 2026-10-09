@@ -1,5 +1,3 @@
-import { PageHeader } from "./PageHeader";
-
 export function ReportsPage() {
-  return <PageHeader title="Reports" description="Ringkasan min, rata-rata, dan max per node." />;
+  return <p className="text-sm text-gray-400">Ringkasan per node akan tampil di sini.</p>;
 }

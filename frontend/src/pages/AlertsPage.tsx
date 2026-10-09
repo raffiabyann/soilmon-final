@@ -1,5 +1,3 @@
-import { PageHeader } from "./PageHeader";
-
 export function AlertsPage() {
-  return <PageHeader title="Alerts" description="Daftar alert aktif dan yang sudah selesai." />;
+  return <p className="text-sm text-gray-400">Daftar alert akan tampil di sini.</p>;
 }

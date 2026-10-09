@@ -1,7 +1,3 @@
-import { PageHeader } from "./PageHeader";
-
 export function HistoryPage() {
-  return (
-    <PageHeader title="Data History" description="Riwayat bacaan sensor per node dan metric." />
-  );
+  return <p className="text-sm text-gray-400">Riwayat bacaan sensor akan tampil di sini.</p>;
 }
