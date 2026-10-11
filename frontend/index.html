@@ -4,6 +4,22 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>SoilMon</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!--
+      Pasang tema sebelum React jalan, supaya tidak ada kedipan putih saat mode gelap.
+      Kunci localStorage harus sama dengan THEME_STORAGE_KEY di src/lib/theme.ts.
+    -->
+    <script>
+      try {
+        const saved = localStorage.getItem("soilmon-theme");
+        const dark =
+          saved === "dark" ||
+          (saved === null && window.matchMedia("(prefers-color-scheme: dark)").matches);
+        document.documentElement.classList.toggle("dark", dark);
+      } catch {
+        /* localStorage diblokir: pakai tema terang */
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

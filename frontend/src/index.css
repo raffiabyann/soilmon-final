@@ -1,18 +1,98 @@
 @import "tailwindcss";
 
 /*
- * Warna tema "Tanah & Daun". Semua komponen memakai nama peran ini
- * (bg-canvas, text-ink, bg-brand, ...), bukan kode warna langsung.
- * Ganti tema cukup di sini.
+ * Dark mode lewat class `.dark` di <html> (bukan otomatis dari sistem),
+ * supaya tombol matahari/bulan di TopBar bisa memilih sendiri.
+ */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Token warna "Tanah & Daun", sama persis dengan variabel Figma
+ * (koleksi "SoilMon · Tanah & Daun", mode Terang). Komponen memakai nama peran
+ * (bg-surface, text-ink, bg-danger-soft, ...), bukan kode warna langsung.
  */
 @theme {
+  --font-sans: "Plus Jakarta Sans Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
+
   --color-canvas: #faf7f2;
   --color-surface: #ffffff;
   --color-line: #e7e1d7;
+  --color-line-soft: #f0ebe3;
   --color-ink: #292524;
+  --color-ink-soft: #57534e;
   --color-ink-muted: #78716c;
+  --color-ink-faint: #a8a29e;
   --color-brand: #047857;
+  --color-brand-strong: #065f46;
   --color-brand-soft: #ecfdf5;
+  --color-band: #e3f1ea;
   --color-accent: #a16207;
   --color-accent-soft: #fef9c3;
+  --color-danger: #dc2626;
+  --color-danger-soft: #fef2f2;
+  --color-danger-line: #fecaca;
+  --color-ok: #15803d;
+  --color-ok-soft: #f0fdf4;
+  --color-water: #2a78d6;
+  --color-water-soft: #e8f1fc;
+  --color-neutral-bar: #d6d3d1;
+  /* Teks/ikon di atas warna solid (brand, danger, ok). Putih di kedua mode. */
+  --color-on-accent: #ffffff;
+
+  --shadow-card: 0 1px 2px rgb(41 36 31 / 0.05), 0 8px 24px rgb(41 36 31 / 0.04);
+}
+
+/* Mode Gelap: nilai dari variabel Figma mode "Gelap". Nama token tetap sama. */
+.dark {
+  --color-canvas: #14120f;
+  --color-surface: #1e1b17;
+  --color-line: #38332d;
+  --color-line-soft: #2b2723;
+  --color-ink: #f4efe7;
+  --color-ink-soft: #d3cbbf;
+  --color-ink-muted: #a39a8f;
+  --color-ink-faint: #6e665d;
+  --color-brand: #0f9a6e;
+  --color-brand-strong: #3cc597;
+  --color-brand-soft: #133429;
+  --color-band: #1d3a30;
+  --color-accent: #e3a83e;
+  --color-accent-soft: #3a2e12;
+  --color-danger: #e5484d;
+  --color-danger-soft: #3b1b1b;
+  --color-danger-line: #6e2b2b;
+  --color-ok: #45b86e;
+  --color-ok-soft: #16301f;
+  --color-water: #4f9ce8;
+  --color-water-soft: #16293d;
+  --color-neutral-bar: #4a443d;
+
+  --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px rgb(0 0 0 / 0.25);
+  color-scheme: dark;
+}
+
+body {
+  background-color: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+}
+
+/*
+ * Daftar pilihan <select> digambar oleh browser, bukan oleh Tailwind.
+ * Tanpa aturan ini, di mode gelap daftarnya tetap putih dengan teks terang (tidak terbaca).
+ */
+select option {
+  background-color: var(--color-surface);
+  color: var(--color-ink);
+}
+
+/* Label kecil gaya "instrumen": JetBrains Mono 11, huruf kapital, renggang 8%. */
+@utility label-mono {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-ink-muted);
 }

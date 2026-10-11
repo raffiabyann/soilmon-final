@@ -1,70 +1,128 @@
 import type { Alert } from "@soilmon/shared";
 import type { LucideIcon } from "lucide-react";
-import { CircleCheck, ShieldAlert, TriangleAlert } from "lucide-react";
-import { describeAlert, suggestAction } from "../lib/alerts";
-import { formatShortDateWib, formatTimeWib } from "../lib/time";
+import { CircleCheck, Eye, TriangleAlert } from "lucide-react";
+import { Badge, type BadgeTone } from "./Badge";
+import {
+  alertState,
+  formatDuration,
+  minutesToResolve,
+  normalRangeText,
+  suggestAction,
+  type AlertState,
+} from "../lib/alerts";
+import { formatValue, getMetric } from "../lib/metrics";
+import { formatClockWib } from "../lib/time";
+import { mockIrrigationEvents, mockNodes } from "../mocks/data";
 
 interface AlertItemProps {
   alert: Alert;
   /** Sudah dibaca (dari data, atau ditandai di sesi ini). */
   acknowledged: boolean;
+  /** Nama & jam baca untuk alert yang ditandai di sesi ini (belum ada di data). */
+  ackLabel?: string;
   onAcknowledge?: () => void;
 }
 
-type Tone = "active" | "acknowledged" | "resolved";
-
-/** Gaya banner per keadaan (referensi "alert" 21st.dev, varian terang). Ikon selalu ikut. */
-const TONE: Record<Tone, { icon: LucideIcon; label: string; box: string; icon_: string }> = {
+/** Gaya per keadaan (komponen Figma "AlertItem", Status=Aktif/Dibaca/Selesai). */
+const STYLE: Record<
+  AlertState,
+  { icon: LucideIcon; label: string; box: string; icon_: string; badge: BadgeTone }
+> = {
   active: {
     icon: TriangleAlert,
-    label: "Aktif, belum dibaca",
-    box: "border-red-200 bg-red-50",
-    icon_: "text-red-600",
+    label: "Aktif",
+    box: "border-danger-line bg-danger-soft",
+    icon_: "text-danger",
+    badge: "danger",
   },
   acknowledged: {
-    icon: ShieldAlert,
-    label: "Sudah dibaca, belum normal",
-    box: "border-amber-200 bg-amber-50",
-    icon_: "text-amber-700",
+    icon: Eye,
+    label: "Dibaca",
+    box: "border-accent/30 bg-accent-soft/60",
+    icon_: "text-accent",
+    badge: "warning",
   },
   resolved: {
     icon: CircleCheck,
-    label: "Selesai, kembali normal",
-    box: "border-green-200 bg-green-50",
-    icon_: "text-green-700",
+    label: "Selesai",
+    box: "border-ok/25 bg-ok-soft",
+    icon_: "text-ok",
+    badge: "ok",
   },
 };
 
-export function AlertItem({ alert, acknowledged, onAcknowledge }: AlertItemProps) {
-  const tone: Tone = alert.resolvedAt ? "resolved" : acknowledged ? "acknowledged" : "active";
-  const style = TONE[tone];
+/** Kalimat penutup untuk alert selesai; sebut pompa kalau pompa menyala di antara mulai-selesai. */
+function resolvedNote(alert: Alert): string {
+  if (!alert.resolvedAt) return "";
+  const pump = mockIrrigationEvents.find(
+    (e) =>
+      e.nodeCode === alert.nodeCode &&
+      e.startedAt >= alert.triggeredAt &&
+      e.startedAt <= alert.resolvedAt!,
+  );
+  const back = `Kembali normal ${formatClockWib(alert.resolvedAt)}.`;
+  if (pump) {
+    return `Pompa menyala otomatis ${formatClockWib(pump.startedAt)} (${pump.volumeLiters} L, ${pump.durationSeconds} detik). ${back}`;
+  }
+  return `Saran: ${suggestAction(alert)} ${back}`;
+}
+
+export function AlertItem({ alert, acknowledged, ackLabel, onAcknowledge }: AlertItemProps) {
+  const state = alertState(alert, acknowledged);
+  const style = STYLE[state];
+  const metric = getMetric(alert.metricKey);
+  const node = mockNodes.find((n) => n.code === alert.nodeCode);
+  const direction = alert.type === "below_min" ? "terlalu rendah" : "terlalu tinggi";
+  const when = alert.resolvedAt
+    ? `${formatClockWib(alert.triggeredAt)} → ${formatClockWib(alert.resolvedAt)} WIB`
+    : `mulai ${formatClockWib(alert.triggeredAt)} WIB`;
+  const resolveMin = minutesToResolve(alert);
 
   return (
-    <li className={`flex gap-3 rounded-xl border px-4 py-3 ${style.box}`}>
-      <style.icon className={`mt-0.5 size-4 shrink-0 ${style.icon_}`} />
-      <div className="flex-1">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-4">
-          <p className="text-sm font-semibold text-ink">{describeAlert(alert)}</p>
-          <span className="font-mono text-xs text-ink-muted">
-            {formatShortDateWib(alert.triggeredAt)} {formatTimeWib(alert.triggeredAt)}
+    <li className={`flex items-center gap-4 rounded-xl border px-5 py-4 ${style.box}`}>
+      <span className="w-12 shrink-0 font-mono text-xs text-ink-muted">
+        {formatClockWib(alert.triggeredAt)}
+      </span>
+      <span className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-surface">
+        <style.icon className={`size-[18px] ${style.icon_}`} />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="flex flex-wrap items-baseline gap-x-2.5">
+          <span className="text-sm font-semibold text-ink">
+            {metric?.label ?? alert.metricKey} {direction}
           </span>
-        </div>
-        <p className="text-xs text-stone-600">
-          <span className="font-mono font-semibold">{alert.nodeCode}</span> · {style.label}
+          <span className="font-mono text-xs text-ink-muted">
+            {alert.nodeCode} · {node?.name}
+          </span>
         </p>
-        {tone !== "resolved" && (
-          <p className="mt-1 text-xs text-stone-600">Saran: {suggestAction(alert)}</p>
+        <p className="mt-0.5 text-xs text-ink-soft">
+          Nilai {formatValue(alert.value, alert.metricKey)} · {normalRangeText(alert)} · {when}
+        </p>
+        <p className="mt-0.5 text-xs text-ink-muted">
+          {state === "resolved" ? resolvedNote(alert) : `Saran: ${suggestAction(alert)}`}
+        </p>
+      </div>
+      <div className="flex shrink-0 items-center gap-3">
+        <Badge tone={style.badge}>{style.label}</Badge>
+        {state === "active" && onAcknowledge && (
+          <button
+            type="button"
+            onClick={onAcknowledge}
+            className="rounded-full border border-line bg-surface px-3 py-1.5 text-xs font-semibold text-ink hover:bg-line-soft"
+          >
+            Tandai dibaca
+          </button>
+        )}
+        {state === "acknowledged" && (
+          <span className="text-xs text-ink-muted">
+            {ackLabel ??
+              `Dibaca ${alert.acknowledgedBy ?? ""} · ${alert.acknowledgedAt ? formatClockWib(alert.acknowledgedAt) : ""}`}
+          </span>
+        )}
+        {state === "resolved" && resolveMin !== null && (
+          <span className="text-xs text-ink-muted">Selesai dalam {formatDuration(resolveMin)}</span>
         )}
       </div>
-      {tone === "active" && onAcknowledge && (
-        <button
-          type="button"
-          onClick={onAcknowledge}
-          className="h-fit shrink-0 rounded-full border border-red-200 bg-surface px-3 py-1 text-xs font-medium text-red-700 hover:bg-red-100"
-        >
-          Tandai dibaca
-        </button>
-      )}
     </li>
   );
 }
