@@ -132,7 +132,7 @@ function NodeSummaryCard({
 
   return (
     <Card className="space-y-3">
-      <div className="flex items-center gap-2.5">
+      <div className="flex flex-wrap items-center gap-2.5">
         <span className={`size-2 rounded-full ${online ? "bg-ok" : "bg-danger"}`} />
         <span className="font-mono text-xs text-ink">{report.nodeCode}</span>
         <h2 className="flex-1 text-lg font-semibold tracking-tight text-ink">{node?.name}</h2>

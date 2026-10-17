@@ -26,7 +26,7 @@ export function IrrigationCard() {
         <span className="text-xs text-ink-muted">{totalCount} kali pompa menyala</span>
       </p>
 
-      <div className="mt-4 h-48 min-h-0 flex-1">
+      <div className="mt-4 min-h-48 flex-1">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={daily} margin={{ top: 18, right: 0, bottom: 0, left: 0 }}>
             <XAxis

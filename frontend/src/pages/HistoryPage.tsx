@@ -273,7 +273,7 @@ function Pagination({
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 px-2">
       <p className="text-xs text-ink-muted">{summary}</p>
-      <nav className="flex gap-1.5" aria-label="Halaman">
+      <nav className="flex flex-wrap gap-1.5" aria-label="Halaman">
         <button
           type="button"
           className={btn}

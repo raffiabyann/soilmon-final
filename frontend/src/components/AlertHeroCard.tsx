@@ -44,7 +44,7 @@ export function AlertHeroCard({ alert, onAcknowledge }: AlertHeroCardProps) {
   const bandEnd = metric && scale ? pct(metric.normalMax ?? scale.hi) : 0;
 
   return (
-    <div className="flex h-full flex-col gap-5 rounded-[20px] bg-danger p-8 text-on-accent shadow-card">
+    <div className="flex h-full flex-col gap-5 rounded-[20px] bg-danger p-6 text-on-accent md:p-8 shadow-card">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="flex items-center gap-2 font-mono text-[11px] font-medium tracking-wider uppercase opacity-85">
           <TriangleAlert className="size-4" />

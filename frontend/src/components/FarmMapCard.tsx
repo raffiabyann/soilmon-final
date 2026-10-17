@@ -78,7 +78,7 @@ export function FarmMapCard() {
           const batLow =
             bat !== undefined && battery ? getMetricStatus(bat, battery) === "low" : false;
           return (
-            <li key={n.code} className="flex items-center gap-3 py-2.5 text-xs">
+            <li key={n.code} className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2.5 text-xs">
               <span className={`size-2 rounded-full ${online ? "bg-ok" : "bg-danger"}`} />
               <span className="font-mono font-semibold text-ink">{n.code}</span>
               <span className="flex-1 text-ink-muted">{n.name}</span>

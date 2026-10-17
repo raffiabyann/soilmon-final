@@ -12,7 +12,7 @@ export function AppLayout() {
   const [open, setOpen] = usePersistentFlag("soilmon-sidebar-open", false);
 
   return (
-    <div className="flex min-h-screen gap-6 bg-canvas p-5 text-ink">
+    <div className="flex min-h-screen gap-3 bg-canvas p-3 text-ink md:gap-6 md:p-5">
       {open ? (
         <SidebarPanel onClose={() => setOpen(false)} />
       ) : (

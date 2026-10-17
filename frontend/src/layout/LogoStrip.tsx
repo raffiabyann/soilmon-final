@@ -3,9 +3,8 @@
  * File logo ada di frontend/public/logos/ (PNG, latar transparan, tinggi 96 px).
  * Logo tanpa file (`src: null`) tampil sebagai kotak bergaris putus-putus berisi namanya.
  *
- * Logo ditaruh di "chip" berlatar putih di kedua tema, karena warna asli logo
- * (teks hitam/biru tua) tidak terbaca di latar gelap. Ini satu-satunya warna di luar token,
- * sengaja, supaya logo mitra tidak diubah warnanya.
+ * Logo tampil tanpa latar di kedua tema, warna asli mitra tidak diubah. Di tema gelap logo
+ * biru tua/hitam jadi kurang kontras; ini keputusan pemilik produk (17 Okt 2026).
  */
 interface PartnerLogo {
   name: string;
@@ -21,13 +20,10 @@ const PARTNER_LOGOS: readonly PartnerLogo[] = [
 
 export function LogoStrip() {
   return (
-    <div className="flex flex-wrap items-center gap-2.5" aria-label="Mitra">
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-2 sm:gap-x-7" aria-label="Mitra">
       {PARTNER_LOGOS.map((logo) =>
         logo.src ? (
-          <span
-            key={logo.name}
-            className="flex h-12 items-center rounded-[10px] border border-line bg-white px-3"
-          >
+          <span key={logo.name} className="flex h-12 items-center">
             <img src={logo.src} alt={logo.name} className="h-9 w-auto" />
           </span>
         ) : (

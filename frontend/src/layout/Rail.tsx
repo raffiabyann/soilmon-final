@@ -13,7 +13,7 @@ export function Rail({ onOpen }: { onOpen: () => void }) {
   const { openAlertCount, gateway } = getShellData();
 
   return (
-    <aside className="sticky top-5 flex h-[calc(100vh-2.5rem)] w-[84px] shrink-0 flex-col items-center gap-2 rounded-[20px] border border-line bg-surface py-4 shadow-card">
+    <aside className="sticky top-3 flex h-[calc(100vh-1.5rem)] w-[84px] md:top-5 md:h-[calc(100vh-2.5rem)] shrink-0 flex-col items-center gap-2 rounded-[20px] border border-line bg-surface py-4 shadow-card">
       <div className="grid size-12 place-items-center rounded-[14px] bg-brand text-on-accent">
         <Sprout className="size-6" />
       </div>

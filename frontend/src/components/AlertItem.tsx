@@ -79,14 +79,14 @@ export function AlertItem({ alert, acknowledged, ackLabel, onAcknowledge }: Aler
   const resolveMin = minutesToResolve(alert);
 
   return (
-    <li className={`flex items-center gap-4 rounded-xl border px-5 py-4 ${style.box}`}>
+    <li className={`flex flex-wrap items-center gap-4 rounded-xl border px-5 py-4 ${style.box}`}>
       <span className="w-12 shrink-0 font-mono text-xs text-ink-muted">
         {formatClockWib(alert.triggeredAt)}
       </span>
       <span className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-surface">
         <style.icon className={`size-[18px] ${style.icon_}`} />
       </span>
-      <div className="min-w-0 flex-1">
+      <div className="min-w-0 flex-1 basis-40">
         <p className="flex flex-wrap items-baseline gap-x-2.5">
           <span className="text-sm font-semibold text-ink">
             {metric?.label ?? alert.metricKey} {direction}
@@ -102,7 +102,7 @@ export function AlertItem({ alert, acknowledged, ackLabel, onAcknowledge }: Aler
           {state === "resolved" ? resolvedNote(alert) : `Saran: ${suggestAction(alert)}`}
         </p>
       </div>
-      <div className="flex shrink-0 items-center gap-3">
+      <div className="ml-auto flex max-w-full shrink-0 flex-wrap items-center gap-x-3 gap-y-1">
         <Badge tone={style.badge}>{style.label}</Badge>
         {state === "active" && onAcknowledge && (
           <button

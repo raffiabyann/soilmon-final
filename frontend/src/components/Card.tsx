@@ -11,7 +11,7 @@ interface CardProps {
 export function Card({ children, className = "", padded = true }: CardProps) {
   return (
     <div
-      className={`rounded-[20px] border border-line bg-surface shadow-card ${padded ? "p-7" : ""} ${className}`}
+      className={`rounded-[20px] border border-line bg-surface shadow-card ${padded ? "p-5 md:p-7" : ""} ${className}`}
     >
       {children}
     </div>

@@ -36,7 +36,7 @@ export function ActivityLog() {
           return (
             <li
               key={entry.id}
-              className="flex items-center gap-4 border-b border-line-soft py-3 text-sm last:border-0"
+              className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-line-soft py-3 text-sm last:border-0"
             >
               <span className="w-24 shrink-0 font-mono whitespace-nowrap text-xs text-ink-muted tabular-nums">
                 {!isToday && `${formatShortDateWib(entry.at)} `}
@@ -46,7 +46,7 @@ export function ActivityLog() {
               <span className="w-8 shrink-0 font-mono text-xs font-semibold text-ink">
                 {entry.nodeCode}
               </span>
-              <span className="text-ink">{entry.text}</span>
+              <span className="w-full min-w-0 text-ink sm:w-auto sm:flex-1">{entry.text}</span>
             </li>
           );
         })}

@@ -152,7 +152,7 @@ export function HeroMetricChart({
         <Badge tone={badge.tone}>{badge.label}</Badge>
       </div>
 
-      <div className="mt-4 h-60 flex-1">
+      <div className="mt-4 min-h-60 flex-1">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={rows} margin={{ top: 24, right: 18, bottom: 0, left: -20 }}>
             <defs>

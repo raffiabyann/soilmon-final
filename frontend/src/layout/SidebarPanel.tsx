@@ -12,7 +12,7 @@ export function SidebarPanel({ onClose }: { onClose: () => void }) {
   const { openAlertCount, gateway, nodes } = getShellData();
 
   return (
-    <aside className="sticky top-5 flex h-[calc(100vh-2.5rem)] w-[248px] shrink-0 flex-col rounded-[20px] border border-line bg-surface px-3 py-4 shadow-card">
+    <aside className="sticky top-3 flex h-[calc(100vh-1.5rem)] w-[248px] md:top-5 md:h-[calc(100vh-2.5rem)] shrink-0 flex-col rounded-[20px] border border-line bg-surface px-3 py-4 shadow-card">
       <div className="flex items-center gap-2.5 px-1 pb-3">
         <div className="grid size-9 place-items-center rounded-[10px] bg-brand text-on-accent">
           <Sprout className="size-5" />
