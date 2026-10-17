@@ -1,19 +1,14 @@
 import { Droplets } from "lucide-react";
-import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis } from "recharts";
+import { Bar, BarChart, Cell, LabelList, ResponsiveContainer, Tooltip, XAxis } from "recharts";
 import { Card } from "./Card";
 import { CardLabel } from "./CardLabel";
 import { dailyIrrigationTotals, type DailyIrrigation } from "../lib/irrigation";
-import { formatDateWib, formatTimeWib } from "../lib/time";
+import { formatClockWib, formatShortDateWib } from "../lib/time";
 import { MOCK_NOW, mockIrrigationEvents } from "../mocks/data";
 
-/** Hari ini = biru (sorotan), hari sebelumnya = abu-abu (latar). */
-const TODAY_COLOR = "#2a78d6";
-const PAST_COLOR = "#d6d3d1";
-const AXIS_COLOR = "#a8a29e";
-
 /**
- * Kartu penyiraman gaya "animated card chart" (referensi 21st.dev):
- * grafik batang air 7 hari di atas, keterangan penyiraman terakhir di bawah.
+ * Kartu "Air penyiraman · 7 hari" (Figma): total liter besar, batang per hari
+ * (hari ini biru, hari lain abu), lalu penyiraman terakhir di bawah.
  */
 export function IrrigationCard() {
   const daily = dailyIrrigationTotals(mockIrrigationEvents, MOCK_NOW);
@@ -22,70 +17,88 @@ export function IrrigationCard() {
   const last = mockIrrigationEvents[0];
 
   return (
-    <Card padded={false} className="flex h-full flex-col overflow-hidden">
-      <div className="relative flex-1 bg-[radial-gradient(var(--color-line)_1px,transparent_1px)] [background-size:14px_14px] px-4 pt-4">
-        <div className="mb-2">
-          <CardLabel>Air penyiraman · 7 hari</CardLabel>
-        </div>
-        <div className="flex gap-2">
-          <span className="rounded-full border border-line bg-surface px-2.5 py-0.5 text-xs font-medium text-ink">
-            {totalLiters} L
-          </span>
-          <span className="rounded-full border border-line bg-surface px-2.5 py-0.5 text-xs font-medium text-ink">
-            {totalCount} kali
-          </span>
-        </div>
-        <div className="h-36">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={daily} margin={{ top: 12, right: 0, bottom: 0, left: 0 }}>
-              <XAxis
-                dataKey="dayLabel"
-                stroke={AXIS_COLOR}
-                tick={{ fontSize: 11 }}
-                tickLine={false}
-                axisLine={false}
+    <Card className="flex h-full flex-col">
+      <CardLabel>Air penyiraman · 7 hari</CardLabel>
+      <p className="mt-2 flex items-baseline gap-2">
+        <span className="text-[30px] leading-none font-bold tracking-tight text-ink">
+          {totalLiters} L
+        </span>
+        <span className="text-xs text-ink-muted">{totalCount} kali pompa menyala</span>
+      </p>
+
+      <div className="mt-4 h-48 min-h-0 flex-1">
+        <ResponsiveContainer width="100%" height="100%">
+          <BarChart data={daily} margin={{ top: 18, right: 0, bottom: 0, left: 0 }}>
+            <XAxis
+              dataKey="dayLabel"
+              stroke="var(--color-ink-muted)"
+              tick={{ fontSize: 12 }}
+              tickLine={false}
+              axisLine={{ stroke: "var(--color-line)" }}
+            />
+            <Tooltip
+              cursor={{ fill: "var(--color-line-soft)" }}
+              contentStyle={{
+                backgroundColor: "var(--color-surface)",
+                border: "1px solid var(--color-line)",
+                borderRadius: 12,
+                fontSize: 12,
+              }}
+              labelStyle={{ color: "var(--color-ink)" }}
+              itemStyle={{ color: "var(--color-ink-soft)" }}
+              labelFormatter={(_, payload) => {
+                const row = payload[0]?.payload as DailyIrrigation | undefined;
+                return row ? row.dateLabel : "";
+              }}
+              formatter={(value, _name, item) => {
+                const row = item.payload as DailyIrrigation;
+                return [`${String(value)} L (${row.count} kali)`, "Air"];
+              }}
+            />
+            <Bar dataKey="liters" radius={[6, 6, 0, 0]} maxBarSize={32}>
+              {daily.map((d) => (
+                <Cell
+                  key={d.dateKey}
+                  fill={d.isToday ? "var(--color-water)" : "var(--color-neutral-bar)"}
+                />
+              ))}
+              <LabelList
+                dataKey="liters"
+                position="top"
+                content={({ x, y, width, value, index }) =>
+                  index === daily.length - 1 ? (
+                    <text
+                      x={Number(x) + Number(width) / 2}
+                      y={Number(y) - 6}
+                      textAnchor="middle"
+                      fontSize={10}
+                      fontFamily="var(--font-mono)"
+                      fill="var(--color-ink-soft)"
+                    >
+                      {String(value)} L
+                    </text>
+                  ) : null
+                }
               />
-              <Tooltip
-                cursor={{ fill: "#f0ebe3" }}
-                contentStyle={{
-                  backgroundColor: "#ffffff",
-                  border: "1px solid #e7e1d7",
-                  borderRadius: 8,
-                  fontSize: 12,
-                }}
-                labelStyle={{ color: "#292524" }}
-                itemStyle={{ color: "#57534e" }}
-                labelFormatter={(_, payload) => {
-                  const row = payload[0]?.payload as DailyIrrigation | undefined;
-                  return row ? row.dateLabel : "";
-                }}
-                formatter={(value, _name, item) => {
-                  const row = item.payload as DailyIrrigation;
-                  return [`${String(value)} L (${row.count} kali)`, "Air"];
-                }}
-              />
-              <Bar dataKey="liters" radius={[4, 4, 0, 0]} maxBarSize={28}>
-                {daily.map((d) => (
-                  <Cell key={d.dateKey} fill={d.isToday ? TODAY_COLOR : PAST_COLOR} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+            </Bar>
+          </BarChart>
+        </ResponsiveContainer>
       </div>
 
-      <div className="border-t border-line px-5 py-4">
-        <p className="flex items-center gap-2 text-sm font-semibold text-ink">
-          <Droplets className="size-4 text-sky-700" />
-          {last ? `Penyiraman terakhir ${last.volumeLiters} L · ${last.nodeCode}` : "Belum ada"}
-        </p>
-        {last && (
-          <p className="mt-0.5 text-xs text-ink-muted">
-            {formatDateWib(last.startedAt)}, {formatTimeWib(last.startedAt)} ·{" "}
-            {last.triggerType === "auto" ? "Otomatis" : "Manual"}
-          </p>
-        )}
-      </div>
+      {last && (
+        <div className="mt-4 flex items-center gap-2.5 border-t border-line pt-4">
+          <Droplets className="size-5 text-water" />
+          <div>
+            <p className="text-sm font-semibold text-ink">
+              Terakhir: {last.volumeLiters} L · {last.nodeCode}
+            </p>
+            <p className="text-xs text-ink-muted">
+              {formatShortDateWib(last.startedAt)}, {formatClockWib(last.startedAt)} WIB ·{" "}
+              {last.triggerType === "auto" ? "otomatis" : "manual"}
+            </p>
+          </div>
+        </div>
+      )}
     </Card>
   );
 }

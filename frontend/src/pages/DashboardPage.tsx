@@ -1,29 +1,24 @@
 import { ActivityLog } from "../components/ActivityLog";
+import { FarmMapCard } from "../components/FarmMapCard";
+import { GreetingCard } from "../components/GreetingCard";
 import { IrrigationCard } from "../components/IrrigationCard";
-import { NodeCard } from "../components/NodeCard";
-import { SystemStatusCard } from "../components/SystemStatusCard";
 import { TrendSection } from "../components/TrendSection";
-import { MOCK_NOW, mockNodes } from "../mocks/data";
 
+/** Dashboard (Figma: "Dashboard · Redesign (1440)"). */
 export function DashboardPage() {
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <div className="lg:col-span-2">
-          <SystemStatusCard />
-        </div>
-        <IrrigationCard />
+    <div className="space-y-5">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_440px]">
+        <GreetingCard />
+        <FarmMapCard />
       </div>
 
       <TrendSection />
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        {mockNodes.map((node) => (
-          <NodeCard key={node.code} node={node} now={MOCK_NOW} />
-        ))}
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_440px]">
+        <ActivityLog />
+        <IrrigationCard />
       </div>
-
-      <ActivityLog />
     </div>
   );
 }

@@ -60,14 +60,21 @@ export const mockNodes: NodeSummary[] = [
   },
 ];
 
+/**
+ * Alert contoh, sesuai bacaan di mocks/telemetry.ts (alert dibuat saat bacaan pertama keluar batas).
+ * - 7: pH N02 turun sejak Sab 10 Okt, masih aktif, belum dibaca.
+ * - 6: baterai N02 di bawah 20% sejak Sel 13 Okt malam, sudah dibaca teknisi, belum normal.
+ * - 5: kelembaban N01 27.1% pagi ini, pompa menyala 05.59, kembali normal 06.20.
+ * - 4: suhu N01 35.6 °C kemarin siang, kembali normal sejam kemudian.
+ */
 export const mockAlerts: Alert[] = [
   {
     id: 7,
     nodeCode: "N02",
     metricKey: "soil_ph",
     type: "below_min",
-    value: 4.6,
-    triggeredAt: "2026-10-14T01:00:00Z",
+    value: 5.4,
+    triggeredAt: "2026-10-10T07:20:00Z",
     resolvedAt: null,
     acknowledgedBy: null,
     acknowledgedAt: null,
@@ -77,11 +84,11 @@ export const mockAlerts: Alert[] = [
     nodeCode: "N02",
     metricKey: "battery_percent",
     type: "below_min",
-    value: 18,
-    triggeredAt: "2026-10-14T00:30:00Z",
+    value: 19,
+    triggeredAt: "2026-10-13T12:20:00Z",
     resolvedAt: null,
-    acknowledgedBy: null,
-    acknowledgedAt: null,
+    acknowledgedBy: "Teknisi",
+    acknowledgedAt: "2026-10-14T00:45:00Z",
   },
   {
     id: 5,
@@ -89,10 +96,21 @@ export const mockAlerts: Alert[] = [
     metricKey: "soil_moisture",
     type: "below_min",
     value: 27.1,
-    triggeredAt: "2026-10-13T22:00:00Z",
-    resolvedAt: "2026-10-13T23:15:00Z",
+    triggeredAt: "2026-10-13T22:20:00Z",
+    resolvedAt: "2026-10-13T23:20:00Z",
     acknowledgedBy: "Pemilik Kebun",
-    acknowledgedAt: "2026-10-13T22:20:00Z",
+    acknowledgedAt: "2026-10-13T22:35:00Z",
+  },
+  {
+    id: 4,
+    nodeCode: "N01",
+    metricKey: "soil_temperature",
+    type: "above_max",
+    value: 35.6,
+    triggeredAt: "2026-10-13T06:20:00Z",
+    resolvedAt: "2026-10-13T07:20:00Z",
+    acknowledgedBy: "Teknisi",
+    acknowledgedAt: "2026-10-13T06:40:00Z",
   },
 ];
 

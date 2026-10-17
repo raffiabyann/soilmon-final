@@ -1,44 +1,119 @@
-import type { Alert } from "@soilmon/shared";
-import { BellRing } from "lucide-react";
-import { describeAlert, suggestAction } from "../lib/alerts";
-import { formatTimeWib } from "../lib/time";
+import type { Alert, Metric } from "@soilmon/shared";
+import { CircleCheck, Sprout, TriangleAlert } from "lucide-react";
+import { Link } from "react-router";
+import { suggestAction } from "../lib/alerts";
+import { getMetric } from "../lib/metrics";
+import { dateKeyWib, formatClockWib, formatShortDateWib } from "../lib/time";
+import { MOCK_NOW, mockNodes } from "../mocks/data";
 
 interface AlertHeroCardProps {
   alert: Alert;
-  /** Jumlah alert lain yang juga belum dibaca, ditampilkan sebagai "+N lainnya". */
-  othersCount: number;
   onAcknowledge: () => void;
 }
 
+/** Sumbu gauge: % → 0–100; selain itu batas normal diperlebar selebar rentangnya ke kiri-kanan. */
+function scaleFor(metric: Metric, value: number): { lo: number; hi: number } {
+  if (metric.unit === "%") return { lo: 0, hi: 100 };
+  const min = metric.normalMin ?? value;
+  const max = metric.normalMax ?? value;
+  const pad = Math.max((max - min) * 0.75, 1);
+  return {
+    lo: Math.floor(Math.min(min - pad, value)),
+    hi: Math.ceil(Math.max(max + pad, value)),
+  };
+}
+
 /**
- * Kartu besar untuk alert terbaru yang belum dibaca (referensi "card-8" 21st.dev).
- * Merah-600 supaya teks putih tetap terbaca (kontras ≥ 4.5:1).
+ * Kartu merah besar untuk alert terbaru yang belum dibaca (Figma: "AlertHeroCard"):
+ * nilai sekarang besar + gauge batas normal, saran, dan tombol "Oke, saya tangani".
  */
-export function AlertHeroCard({ alert, othersCount, onAcknowledge }: AlertHeroCardProps) {
+export function AlertHeroCard({ alert, onAcknowledge }: AlertHeroCardProps) {
+  const metric = getMetric(alert.metricKey);
+  const node = mockNodes.find((n) => n.code === alert.nodeCode);
+  const value = node?.latest[alert.metricKey] ?? alert.value;
+  const direction = alert.type === "below_min" ? "terlalu rendah" : "terlalu tinggi";
+  const label = metric?.label ?? alert.metricKey;
+  const since =
+    dateKeyWib(alert.triggeredAt) === dateKeyWib(MOCK_NOW)
+      ? `${formatClockWib(alert.triggeredAt)} WIB`
+      : `${formatShortDateWib(alert.triggeredAt)} ${formatClockWib(alert.triggeredAt)}`;
+
+  const scale = metric ? scaleFor(metric, value) : null;
+  const pct = (v: number) => (scale ? ((v - scale.lo) / (scale.hi - scale.lo)) * 100 : 0);
+  const bandStart = metric && scale ? pct(metric.normalMin ?? scale.lo) : 0;
+  const bandEnd = metric && scale ? pct(metric.normalMax ?? scale.hi) : 0;
+
   return (
-    <div className="flex flex-col gap-5 rounded-2xl bg-red-600 p-6 text-white shadow-sm sm:flex-row sm:items-center">
-      <div className="flex-1">
-        <div className="flex items-start gap-4">
-          <div className="rounded-full bg-white/20 p-2.5">
-            <BellRing className="size-5" />
-          </div>
-          <div>
-            <p className="font-mono text-[11px] tracking-wider text-white/80 uppercase">
-              Perlu ditangani · {alert.nodeCode} · sejak {formatTimeWib(alert.triggeredAt)}
-              {othersCount > 0 && ` · +${othersCount} lainnya`}
-            </p>
-            <p className="mt-1 text-xl font-semibold">{describeAlert(alert)}</p>
-            <p className="mt-1 text-sm text-white/90">Saran: {suggestAction(alert)}</p>
-          </div>
-        </div>
+    <div className="flex h-full flex-col gap-5 rounded-[20px] bg-danger p-8 text-on-accent shadow-card">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <p className="flex items-center gap-2 font-mono text-[11px] font-medium tracking-wider uppercase opacity-85">
+          <TriangleAlert className="size-4" />
+          Alert baru · sejak {since} · {alert.nodeCode} {node?.name}
+        </p>
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-on-accent/20 px-2.5 py-1 text-xs font-semibold">
+          <span className="size-1.5 rounded-full bg-on-accent" />
+          Belum dibaca
+        </span>
       </div>
-      <button
-        type="button"
-        onClick={onAcknowledge}
-        className="shrink-0 rounded-full bg-ink px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-stone-900"
-      >
-        Oke, saya tangani
-      </button>
+
+      <h2 className="text-[28px] leading-tight font-bold tracking-tight">
+        {label} {alert.nodeCode} {direction}
+      </h2>
+
+      <div className="flex flex-wrap items-center gap-7">
+        <p className="flex items-baseline gap-2">
+          <span className="text-[44px] leading-none font-bold tracking-tight">{value}</span>
+          <span className="text-sm opacity-80">{metric?.unit ?? label.split(" ")[0]}</span>
+        </p>
+        {metric && scale && (
+          <div className="w-[300px] max-w-full">
+            <div className="relative h-3.5">
+              <div className="absolute inset-x-0 top-1 h-1.5 rounded-full bg-on-accent/20" />
+              <div
+                className="absolute top-1 h-1.5 rounded-full bg-on-accent/55"
+                style={{ left: `${bandStart}%`, width: `${bandEnd - bandStart}%` }}
+              />
+              <div
+                className="absolute top-0 size-3.5 -translate-x-1/2 rounded-full border-[3px] border-danger bg-on-accent"
+                style={{ left: `${pct(value)}%` }}
+              />
+            </div>
+            <div className="mt-2 flex justify-between font-mono text-xs">
+              <span className="opacity-70">{scale.lo}</span>
+              <span className="opacity-85">
+                normal {metric.normalMin ?? "–"}–{metric.normalMax ?? "–"}
+              </span>
+              <span className="opacity-70">{scale.hi}</span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="flex gap-3 rounded-xl bg-on-accent/12 px-4 py-3.5 text-sm">
+        <Sprout className="mt-0.5 size-[18px] shrink-0" />
+        <p>
+          Saran: {suggestAction(alert)}
+          {alert.metricKey !== "soil_moisture" &&
+            " Pompa tidak bisa memperbaiki ini, jadi alert selesai setelah ditangani orang dan nilainya kembali normal."}
+        </p>
+      </div>
+
+      <div className="mt-auto flex flex-wrap gap-3">
+        <button
+          type="button"
+          onClick={onAcknowledge}
+          className="inline-flex items-center gap-2 rounded-full bg-on-accent px-[18px] py-2.5 text-sm font-semibold text-danger hover:opacity-90"
+        >
+          <CircleCheck className="size-4" />
+          Oke, saya tangani
+        </button>
+        <Link
+          to={`/history?node=${alert.nodeCode}`}
+          className="inline-flex items-center rounded-full border border-on-accent/50 px-[18px] py-2.5 text-sm font-semibold hover:bg-on-accent/10"
+        >
+          Lihat di Data History →
+        </Link>
+      </div>
     </div>
   );
 }

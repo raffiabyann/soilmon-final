@@ -43,3 +43,15 @@ export function formatShortDateWib(iso: string | Date): string {
     new Date(iso),
   );
 }
+
+/** Tanggal panjang menurut WIB, contoh "Rabu, 14 Okt 2026" (TopBar). */
+export function formatLongDateWib(iso: string | Date): string {
+  const d = new Date(iso);
+  const weekday = new Intl.DateTimeFormat("id-ID", { timeZone: WIB, weekday: "long" }).format(d);
+  return `${weekday}, ${formatShortDateWib(d)} ${new Intl.DateTimeFormat("id-ID", { timeZone: WIB, year: "numeric" }).format(d)}`;
+}
+
+/** Jam saja tanpa "WIB", contoh "08.40". Untuk kolom monospace. */
+export function formatClockWib(iso: string | Date): string {
+  return formatTimeWib(iso).replace(" WIB", "");
+}

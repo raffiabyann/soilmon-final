@@ -21,8 +21,59 @@ export function suggestAction(alert: Alert): string {
     case "soil_moisture:above_max":
       return "Periksa drainase, kurangi penyiraman.";
     case "battery_percent:below_min":
-      return "Isi ulang atau ganti baterai node.";
+      return "Ganti atau isi ulang baterai, cek panel surya node.";
+    case "soil_temperature:above_max":
+      return "Beri mulsa atau naungan saat siang terik.";
+    case "soil_temperature:below_min":
+      return "Pantau terus; biasanya naik lagi saat siang.";
     default:
       return "Periksa kondisi node di lapangan.";
   }
+}
+
+export type AlertState = "active" | "acknowledged" | "resolved";
+
+/** Aktif = belum dibaca; Dibaca = sudah ditangani tapi nilai belum normal; Selesai = normal lagi. */
+export function alertState(alert: Alert, acknowledged: boolean): AlertState {
+  if (alert.resolvedAt) {
+    return "resolved";
+  }
+  return acknowledged ? "acknowledged" : "active";
+}
+
+/** Contoh: "batas normal 5.5–7.5", "batas normal ≥ 20%". */
+export function normalRangeText(alert: Alert): string {
+  const metric = getMetric(alert.metricKey);
+  if (!metric) {
+    return "";
+  }
+  const unit = metric.unit === "%" ? "%" : metric.unit ? ` ${metric.unit}` : "";
+  if (metric.normalMin !== null && metric.normalMax !== null) {
+    return `batas normal ${metric.normalMin}–${metric.normalMax}${unit}`;
+  }
+  if (metric.normalMin !== null) {
+    return `batas normal ≥ ${metric.normalMin}${unit}`;
+  }
+  if (metric.normalMax !== null) {
+    return `batas normal ≤ ${metric.normalMax}${unit}`;
+  }
+  return "";
+}
+
+/** Durasi dalam menit jadi teks pendek, contoh 75 -> "1 j 15 m". */
+export function formatDuration(minutes: number): string {
+  const h = Math.floor(minutes / 60);
+  const m = Math.round(minutes % 60);
+  if (h === 0) {
+    return `${m} m`;
+  }
+  return m === 0 ? `${h} jam` : `${h} j ${m} m`;
+}
+
+/** Lama alert sampai selesai, dalam menit (null kalau belum selesai). */
+export function minutesToResolve(alert: Alert): number | null {
+  if (!alert.resolvedAt) {
+    return null;
+  }
+  return (new Date(alert.resolvedAt).getTime() - new Date(alert.triggeredAt).getTime()) / 60000;
 }

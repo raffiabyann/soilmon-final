@@ -3,6 +3,7 @@ import { getMetricStatus, type Metric } from "@soilmon/shared";
 interface RangeGaugeProps {
   value: number;
   metric: Metric | undefined;
+  className?: string;
 }
 
 interface Scale {
@@ -12,7 +13,7 @@ interface Scale {
 
 /**
  * Rentang sumbu gauge:
- * - satuan % → 0 sampai 100 (seperti bar CPU/Memory di referensi);
+ * - satuan % → 0 sampai 100;
  * - punya batas bawah & atas → batas normal diperlebar 50% ke kiri dan kanan;
  * - selain itu tidak digambar (belum ada batas normal untuk dibandingkan).
  */
@@ -31,14 +32,11 @@ function toPercent(v: number, s: Scale): number {
   return Math.min(100, Math.max(0, ((v - s.lo) / (s.hi - s.lo)) * 100));
 }
 
-/**
- * Bar kecil di tabel (referensi "servers table" 21st.dev), versi SoilMon:
- * pita hijau = batas normal, titik = nilai bacaan. Titik merah kalau di luar batas.
- */
-export function RangeGauge({ value, metric }: RangeGaugeProps) {
+/** Bar kecil di tabel: pita = batas normal, titik = nilai bacaan. Titik merah kalau di luar batas. */
+export function RangeGauge({ value, metric, className = "w-[84px]" }: RangeGaugeProps) {
   const scale = metric ? scaleFor(metric) : null;
   if (!metric || !scale) {
-    return <span className="text-xs text-ink-muted">–</span>;
+    return null;
   }
   const bandStart = toPercent(metric.normalMin ?? scale.lo, scale);
   const bandEnd = toPercent(metric.normalMax ?? scale.hi, scale);
@@ -48,16 +46,16 @@ export function RangeGauge({ value, metric }: RangeGaugeProps) {
 
   return (
     <div
-      className="relative h-1.5 w-28 rounded-full bg-stone-100"
+      className={`relative h-1 rounded-full bg-line-soft ${className}`}
       title={`Normal ${metric.normalMin ?? "-"} – ${metric.normalMax ?? "-"}`}
     >
       <div
-        className="absolute inset-y-0 rounded-full bg-green-200"
+        className="absolute inset-y-0 rounded-full bg-band"
         style={{ left: `${bandStart}%`, width: `${bandEnd - bandStart}%` }}
       />
       <div
-        className={`absolute top-1/2 size-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full ring-2 ring-surface ${
-          outside ? "bg-red-600" : "bg-ink"
+        className={`absolute top-1/2 size-[7px] -translate-x-1/2 -translate-y-1/2 rounded-full ${
+          outside ? "bg-danger" : "bg-ink"
         }`}
         style={{ left: `${position}%` }}
       />
