@@ -3,6 +3,7 @@ import type { LucideIcon } from "lucide-react";
 import { Bell, Droplets, Router, Wifi } from "lucide-react";
 import { Card } from "./Card";
 import { CardLabel } from "./CardLabel";
+import { round2 } from "../lib/math";
 import { getMetric } from "../lib/metrics";
 import { dateKeyWib, formatClockWib, formatTimeWib } from "../lib/time";
 import { MOCK_NOW, mockAlerts, mockGateways, mockIrrigationEvents, mockNodes } from "../mocks/data";
@@ -41,7 +42,7 @@ export function GreetingCard() {
   const openAlerts = mockAlerts.filter((a) => a.resolvedAt === null);
   const todayKey = dateKeyWib(MOCK_NOW);
   const todayWater = mockIrrigationEvents.filter((e) => dateKeyWib(e.startedAt) === todayKey);
-  const todayLiters = Math.round(todayWater.reduce((s, e) => s + e.volumeLiters, 0) * 100) / 100;
+  const todayLiters = round2(todayWater.reduce((s, e) => s + e.volumeLiters, 0));
   const lastToday = todayWater[0];
 
   const issues: Issue[] = [
@@ -58,7 +59,6 @@ export function GreetingCard() {
       tone: "neutral" as const,
     })),
   ];
-  const actionable = openAlerts.length;
 
   const kpis: Kpi[] = [
     {
@@ -102,8 +102,8 @@ export function GreetingCard() {
         <CardLabel>Kebun Belimbing · Tuban</CardLabel>
         <h2 className="mt-3 text-[28px] leading-tight font-bold tracking-tight text-ink">
           {greeting(MOCK_NOW)}.{" "}
-          {actionable > 0
-            ? `Ada ${actionable} hal yang perlu kamu cek hari ini.`
+          {issues.length > 0
+            ? `Ada ${issues.length} hal yang perlu kamu cek hari ini.`
             : "Kebun dalam kondisi baik."}
         </h2>
         {issues.length > 0 && (
@@ -112,7 +112,9 @@ export function GreetingCard() {
               <span
                 key={i.text}
                 className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium ${
-                  i.tone === "danger" ? "bg-danger-soft text-danger" : "bg-line-soft text-ink-soft"
+                  i.tone === "danger"
+                    ? "bg-danger-soft text-danger-ink"
+                    : "bg-line-soft text-ink-soft"
                 }`}
               >
                 <span

@@ -21,7 +21,8 @@
   --color-line-soft: #f0ebe3;
   --color-ink: #292524;
   --color-ink-soft: #57534e;
-  --color-ink-muted: #78716c;
+  --color-ink-muted: #6b655f;
+  /* Hanya untuk elemen dekoratif (titik, garis). Untuk teks pakai ink-muted. */
   --color-ink-faint: #a8a29e;
   --color-brand: #047857;
   --color-brand-strong: #065f46;
@@ -30,14 +31,18 @@
   --color-accent: #a16207;
   --color-accent-soft: #fef9c3;
   --color-danger: #dc2626;
+  /* Teks merah: lebih gelap dari --color-danger supaya lolos 4.5:1 di atas danger-soft. */
+  --color-danger-ink: #b91c1c;
   --color-danger-soft: #fef2f2;
   --color-danger-line: #fecaca;
   --color-ok: #15803d;
   --color-ok-soft: #f0fdf4;
   --color-water: #2a78d6;
   --color-water-soft: #e8f1fc;
+  /* Teks biru di atas water-soft (badge). */
+  --color-water-ink: #1d5fb4;
   --color-neutral-bar: #d6d3d1;
-  /* Teks/ikon di atas warna solid (brand, danger, ok). Putih di kedua mode. */
+  /* Teks/ikon di atas warna solid (brand, danger, ok). Putih di mode terang, gelap di mode gelap. */
   --color-on-accent: #ffffff;
 
   --shadow-card: 0 1px 2px rgb(41 36 31 / 0.05), 0 8px 24px rgb(41 36 31 / 0.04);
@@ -60,13 +65,17 @@
   --color-accent: #e3a83e;
   --color-accent-soft: #3a2e12;
   --color-danger: #e5484d;
+  --color-danger-ink: #ff7b7f;
   --color-danger-soft: #3b1b1b;
   --color-danger-line: #6e2b2b;
   --color-ok: #45b86e;
   --color-ok-soft: #16301f;
   --color-water: #4f9ce8;
   --color-water-soft: #16293d;
+  --color-water-ink: #4f9ce8;
   --color-neutral-bar: #4a443d;
+  /* Putih di atas brand/danger mode gelap hanya 3.6–3.9:1, jadi teksnya digelapkan. */
+  --color-on-accent: #14120f;
 
   --shadow-card: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px rgb(0 0 0 / 0.25);
   color-scheme: dark;

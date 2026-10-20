@@ -9,12 +9,11 @@ import { RangeGauge } from "../components/RangeGauge";
 import { Segmented } from "../components/Segmented";
 import { getMetric } from "../lib/metrics";
 import { groupPackets } from "../lib/packets";
-import { formatClockWib, formatShortDateWib } from "../lib/time";
+import { HOUR_MS, formatClockWib, formatShortDateWib } from "../lib/time";
 import { MOCK_NOW, mockNodes } from "../mocks/data";
 import { mockReadings } from "../mocks/telemetry";
 
 const PAGE_SIZE = 10;
-const HOUR_MS = 60 * 60 * 1000;
 
 type Range = "24h" | "7d";
 type StatusFilter = "all" | "outside";
@@ -64,9 +63,8 @@ export function HistoryPage() {
   return (
     <div className="space-y-5">
       <PageHeader
-        eyebrow="Riwayat bacaan sensor"
         title="Data History"
-        description="Satu baris = satu paket data dari node (dikirim tiap ±1 jam lewat LoRa)."
+        description="Satu baris = satu paket data yang dikirim node lewat LoRa."
         stat={packets.length}
         statCaption={`paket · ${readingCount} bacaan · ${RANGE_LABEL[range].replace(" terakhir", "")}`}
       />
@@ -156,10 +154,10 @@ export function HistoryPage() {
                     return (
                       <td key={c.key}>
                         {value === undefined ? (
-                          <span className="text-ink-faint">–</span>
+                          <span className="text-ink-muted">–</span>
                         ) : (
                           <>
-                            <p className={`tabular-nums ${out ? "text-danger" : "text-ink"}`}>
+                            <p className={`tabular-nums ${out ? "text-danger-ink" : "text-ink"}`}>
                               {value}
                               {metric?.unit && (
                                 <span className="ml-0.5 text-xs text-ink-muted">{metric.unit}</span>
@@ -234,7 +232,7 @@ function LabeledSelect({
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="appearance-none bg-transparent pr-6 text-sm font-semibold text-ink outline-none"
+        className="appearance-none bg-transparent pr-6 text-sm font-semibold text-ink outline-none pointer-coarse:min-h-11"
       >
         {children}
       </select>
@@ -268,8 +266,10 @@ function Pagination({
   onChange: (page: number) => void;
   summary: string;
 }) {
-  const btn =
-    "grid size-[34px] place-items-center rounded-[10px] border border-line bg-surface text-xs text-ink-soft hover:bg-line-soft disabled:opacity-40";
+  // Warna dipisah dari ukuran: kalau digabung, bg-surface mengalahkan bg-brand di tombol aktif.
+  const shape =
+    "grid size-[34px] place-items-center pointer-coarse:size-11 rounded-[10px] border text-xs";
+  const btn = `${shape} border-line bg-surface text-ink-soft hover:bg-line-soft disabled:opacity-40`;
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 px-2">
       <p className="text-xs text-ink-muted">{summary}</p>
@@ -295,9 +295,7 @@ function Pagination({
               onClick={() => onChange(n)}
               aria-current={n === page ? "page" : undefined}
               className={
-                n === page
-                  ? `${btn} border-brand bg-brand font-semibold text-on-accent hover:bg-brand`
-                  : btn
+                n === page ? `${shape} border-brand bg-brand font-semibold text-on-accent` : btn
               }
             >
               {n}

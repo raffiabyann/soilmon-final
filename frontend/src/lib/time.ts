@@ -55,3 +55,6 @@ export function formatLongDateWib(iso: string | Date): string {
 export function formatClockWib(iso: string | Date): string {
   return formatTimeWib(iso).replace(" WIB", "");
 }
+
+export const HOUR_MS = 60 * 60 * 1000;
+export const DAY_MS = 24 * HOUR_MS;

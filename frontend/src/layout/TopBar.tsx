@@ -12,7 +12,7 @@ export function TopBar() {
     <header className="flex flex-wrap items-center justify-between gap-4 xl:grid xl:grid-cols-[1fr_auto_1fr]">
       <LogoStrip />
       <p className="order-last w-full text-center xl:order-none xl:w-auto">
-        <span className="block text-xs text-ink-soft">Engineered for Precision by</span>
+        <span className="block text-xs text-ink-soft">Dikembangkan oleh</span>
         <span className="block text-sm font-semibold text-ink">
           Universitas Multimedia Nusantara &amp; PT. IDE Kreatif Teknologi
         </span>

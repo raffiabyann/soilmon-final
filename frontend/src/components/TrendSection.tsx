@@ -2,10 +2,9 @@ import { ChartLine, FlaskConical, Thermometer } from "lucide-react";
 import { useState } from "react";
 import { HeroMetricChart, SparkMetricCard } from "./MetricTrendChart";
 import { Segmented } from "./Segmented";
+import { DAY_MS } from "../lib/time";
 import { MOCK_NOW, mockIrrigationEvents, mockNodes } from "../mocks/data";
 import { mockReadings } from "../mocks/telemetry";
-
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** Bagian "24 jam": grafik kelembaban besar + kartu suhu dan pH, untuk node yang dipilih. */
 export function TrendSection() {
@@ -37,7 +36,7 @@ export function TrendSection() {
           nodeCode={nodeCode}
           latest={node?.latest.soil_moisture}
           pumps={pumps}
-          caption="Pompa menyala otomatis saat di bawah 30%."
+          caption="Garis putus-putus = pompa menyala."
         />
         <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-1">
           <SparkMetricCard

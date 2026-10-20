@@ -4,9 +4,9 @@ export type BadgeTone = "ok" | "danger" | "warning" | "water" | "neutral";
 
 const TONE: Record<BadgeTone, { box: string; dot: string }> = {
   ok: { box: "bg-ok-soft text-ok", dot: "bg-ok" },
-  danger: { box: "bg-danger-soft text-danger", dot: "bg-danger" },
+  danger: { box: "bg-danger-soft text-danger-ink", dot: "bg-danger" },
   warning: { box: "bg-accent-soft text-accent", dot: "bg-accent" },
-  water: { box: "bg-water-soft text-water", dot: "bg-water" },
+  water: { box: "bg-water-soft text-water-ink", dot: "bg-water" },
   neutral: { box: "bg-line-soft text-ink-muted", dot: "bg-ink-faint" },
 };
 

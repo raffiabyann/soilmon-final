@@ -5,7 +5,8 @@ import {
   type TelemetryReading,
 } from "@soilmon/shared";
 import { getMetric } from "./metrics";
-import { dateKeyWib, formatWeekdayWib } from "./time";
+import { round1, round2 } from "./math";
+import { DAY_MS, dateKeyWib, formatWeekdayWib } from "./time";
 
 /** Metrik yang ditampilkan di Reports, urut seperti di Figma. */
 export const REPORT_METRICS: readonly MetricKey[] = [
@@ -51,10 +52,6 @@ export interface NodeReport {
   packetCount: number;
   /** Persen bacaan (metrik berbatas normal) yang masuk batas normal. */
   inRangePercent: number;
-}
-
-function round1(n: number): number {
-  return Math.round(n * 10) / 10;
 }
 
 function summarize(rows: TelemetryReading[], metricKey: MetricKey): MetricSummary | null {
@@ -136,7 +133,7 @@ export function dailyCompliance(
   const metric = getMetric(metricKey);
   const result: HeatDay[] = [];
   for (let i = days - 1; i >= 0; i--) {
-    const day = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
+    const day = new Date(now.getTime() - i * DAY_MS);
     const key = dateKeyWib(day);
     const rows = readings.filter(
       (r) =>
@@ -167,7 +164,7 @@ export function irrigationTotals(events: IrrigationEvent[], nodeCode?: string) {
   const own = nodeCode ? events.filter((e) => e.nodeCode === nodeCode) : events;
   return {
     count: own.length,
-    liters: Math.round(own.reduce((s, e) => s + e.volumeLiters, 0) * 100) / 100,
+    liters: round2(own.reduce((s, e) => s + e.volumeLiters, 0)),
   };
 }
 

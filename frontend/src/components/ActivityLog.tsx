@@ -9,7 +9,7 @@ import { MOCK_NOW, mockAlerts, mockIrrigationEvents, mockNodes } from "../mocks/
 
 /** Ikon + warna per jenis kejadian (komponen Figma "LogRow"). Warna selalu ditemani ikon. */
 const KIND_STYLE: Record<ActivityKind, { icon: LucideIcon; className: string }> = {
-  alert: { icon: TriangleAlert, className: "text-danger" },
+  alert: { icon: TriangleAlert, className: "text-danger-ink" },
   ack: { icon: Eye, className: "text-ink-muted" },
   resolved: { icon: CircleCheck, className: "text-ok" },
   irrigation: { icon: Droplets, className: "text-water" },
@@ -24,9 +24,12 @@ export function ActivityLog() {
   return (
     <Card className="h-full">
       <div className="mb-2 flex items-center justify-between">
-        <CardLabel>&gt;_ Log aktivitas</CardLabel>
-        <Link to="/alerts" className="text-xs font-semibold text-brand hover:underline">
-          Lihat semua alert →
+        <CardLabel>Log aktivitas</CardLabel>
+        <Link
+          to="/alerts"
+          className="text-xs font-semibold text-brand hover:underline pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center"
+        >
+          Lihat semua alert
         </Link>
       </div>
       <ol>

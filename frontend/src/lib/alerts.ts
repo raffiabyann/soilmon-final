@@ -1,11 +1,15 @@
 import type { Alert } from "@soilmon/shared";
-import { formatValue, getMetric } from "./metrics";
+import { formatValue, getMetric, normalRangeText as metricRangeText } from "./metrics";
+
+/** "terlalu rendah" atau "terlalu tinggi", sesuai jenis alert. */
+export function alertDirection(alert: Alert): string {
+  return alert.type === "below_min" ? "terlalu rendah" : "terlalu tinggi";
+}
 
 /** Kalimat alert dirangkai di frontend, tidak disimpan di database (Spec Topik 6). */
 export function describeAlert(alert: Alert): string {
   const label = getMetric(alert.metricKey)?.label ?? alert.metricKey;
-  const direction = alert.type === "below_min" ? "terlalu rendah" : "terlalu tinggi";
-  return `${label} ${direction} (${formatValue(alert.value, alert.metricKey)})`;
+  return `${label} ${alertDirection(alert)} (${formatValue(alert.value, alert.metricKey)})`;
 }
 
 /** Saran tindakan untuk petani; teks ditulis di kode, bukan di database. */
@@ -21,7 +25,7 @@ export function suggestAction(alert: Alert): string {
     case "soil_moisture:above_max":
       return "Periksa drainase, kurangi penyiraman.";
     case "battery_percent:below_min":
-      return "Ganti atau isi ulang baterai, cek panel surya node.";
+      return "Ganti atau isi ulang baterai node.";
     case "soil_temperature:above_max":
       return "Beri mulsa atau naungan saat siang terik.";
     case "soil_temperature:below_min":
@@ -44,20 +48,8 @@ export function alertState(alert: Alert, acknowledged: boolean): AlertState {
 /** Contoh: "batas normal 5.5–7.5", "batas normal ≥ 20%". */
 export function normalRangeText(alert: Alert): string {
   const metric = getMetric(alert.metricKey);
-  if (!metric) {
-    return "";
-  }
-  const unit = metric.unit === "%" ? "%" : metric.unit ? ` ${metric.unit}` : "";
-  if (metric.normalMin !== null && metric.normalMax !== null) {
-    return `batas normal ${metric.normalMin}–${metric.normalMax}${unit}`;
-  }
-  if (metric.normalMin !== null) {
-    return `batas normal ≥ ${metric.normalMin}${unit}`;
-  }
-  if (metric.normalMax !== null) {
-    return `batas normal ≤ ${metric.normalMax}${unit}`;
-  }
-  return "";
+  const text = metric ? metricRangeText(metric) : "";
+  return text ? `batas ${text}` : "";
 }
 
 /** Durasi dalam menit jadi teks pendek, contoh 75 -> "1 j 15 m". */

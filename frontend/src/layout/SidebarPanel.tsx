@@ -1,4 +1,4 @@
-import { ChevronDown, PanelLeft, Sprout, Wifi, WifiOff } from "lucide-react";
+import { PanelLeft, Sprout, Wifi, WifiOff } from "lucide-react";
 import { Link, NavLink, useLocation } from "react-router";
 import { NAV_ITEMS } from "./navItems";
 import { getShellData, isNavActive } from "./shellData";
@@ -71,7 +71,7 @@ export function SidebarPanel({ onClose }: { onClose: () => void }) {
               <span className={`size-2 rounded-full ${n.online ? "bg-ok" : "bg-danger"}`} />
               <span className="font-mono text-xs font-semibold text-ink">{n.code}</span>
               <span className="flex-1 truncate text-ink-soft">{n.name}</span>
-              <span className="font-mono text-[11px] text-ink-faint">{n.lastSeen}</span>
+              <span className="font-mono text-[11px] text-ink-muted">{n.lastSeen}</span>
             </Link>
           </li>
         ))}
@@ -82,7 +82,7 @@ export function SidebarPanel({ onClose }: { onClose: () => void }) {
           {gateway.online ? (
             <Wifi className="size-5 text-brand" />
           ) : (
-            <WifiOff className="size-5 text-danger" />
+            <WifiOff className="size-5 text-danger-ink" />
           )}
           <div className="min-w-0">
             <p className="text-xs font-semibold text-ink">
@@ -100,7 +100,6 @@ export function SidebarPanel({ onClose }: { onClose: () => void }) {
             <p className="text-sm font-semibold text-ink">Pemilik Kebun</p>
             <p className="text-xs text-ink-muted">owner</p>
           </div>
-          <ChevronDown className="size-4 text-ink-muted" />
         </div>
       </div>
     </aside>

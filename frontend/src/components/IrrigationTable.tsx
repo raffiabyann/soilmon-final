@@ -3,6 +3,7 @@ import { Droplets } from "lucide-react";
 import { useState } from "react";
 import { Badge } from "./Badge";
 import { Card } from "./Card";
+import { round2 } from "../lib/math";
 import { formatClockWib, formatShortDateWib } from "../lib/time";
 import { mockIrrigationEvents, mockNodes } from "../mocks/data";
 import { mockReadings } from "../mocks/telemetry";
@@ -25,7 +26,7 @@ export function IrrigationTable() {
   const events = mockIrrigationEvents;
   const shown = showAll ? events : events.slice(0, PREVIEW);
   const maxLiters = Math.max(...events.map((e) => e.volumeLiters), 0.1);
-  const total = Math.round(events.reduce((s, e) => s + e.volumeLiters, 0) * 100) / 100;
+  const total = round2(events.reduce((s, e) => s + e.volumeLiters, 0));
 
   return (
     <Card className="space-y-3">
@@ -34,10 +35,7 @@ export function IrrigationTable() {
           <h2 className="flex items-center gap-2 text-lg font-semibold tracking-tight text-ink">
             <Droplets className="size-5 text-water" /> Riwayat Penyiraman
           </h2>
-          <p className="text-xs text-ink-muted">
-            Pompa menyala otomatis saat kelembaban di bawah 30%. Volume = perkiraan dari durasi ×
-            debit pompa.
-          </p>
+          <p className="text-xs text-ink-muted">Volume = perkiraan dari durasi × debit pompa.</p>
         </div>
         <p className="flex items-baseline gap-2">
           <span className="text-[30px] leading-none font-bold tracking-tight text-ink">
@@ -79,7 +77,7 @@ export function IrrigationTable() {
                       <span className="size-1.5 rounded-full bg-water" />
                       <div>
                         <p className="font-mono text-xs font-semibold text-ink">{e.nodeCode}</p>
-                        <p className="text-xs text-ink-muted">{node?.name}</p>
+                        <p className="text-xs whitespace-nowrap text-ink-muted">{node?.name}</p>
                       </div>
                     </div>
                   </td>
@@ -122,9 +120,9 @@ export function IrrigationTable() {
           <button
             type="button"
             onClick={() => setShowAll(!showAll)}
-            className="font-semibold text-brand hover:underline"
+            className="shrink-0 font-semibold whitespace-nowrap text-brand hover:underline pointer-coarse:min-h-11"
           >
-            {showAll ? "Tampilkan lebih sedikit" : "Lihat semua →"}
+            {showAll ? "Tampilkan lebih sedikit" : "Lihat semua"}
           </button>
         )}
       </div>

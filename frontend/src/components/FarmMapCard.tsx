@@ -83,7 +83,7 @@ export function FarmMapCard() {
               <span className="font-mono font-semibold text-ink">{n.code}</span>
               <span className="flex-1 text-ink-muted">{n.name}</span>
               <span
-                className={`flex items-center gap-1 font-mono ${batLow ? "text-danger" : "text-ink-soft"}`}
+                className={`flex items-center gap-1 font-mono ${batLow ? "text-danger-ink" : "text-ink-soft"}`}
               >
                 <BatteryMedium className="size-3.5" />
                 {bat ?? "-"}%

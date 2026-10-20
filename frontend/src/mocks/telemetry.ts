@@ -1,4 +1,6 @@
 import type { MetricKey, TelemetryReading } from "@soilmon/shared";
+import { HOUR_MS } from "../lib/time";
+import { round1 } from "../lib/math";
 import { MOCK_NOW, mockIrrigationEvents, mockNodes } from "./data";
 
 /**
@@ -10,7 +12,6 @@ import { MOCK_NOW, mockIrrigationEvents, mockNodes } from "./data";
  * Hapus file ini saat frontend sudah tersambung ke backend (F6).
  */
 export const HISTORY_HOURS = 7 * 24;
-const HOUR_MS = 60 * 60 * 1000;
 
 /** EC dan NPK belum ditampilkan di web (Spec: ditunda). */
 const SHOWN_METRICS: readonly MetricKey[] = [
@@ -20,10 +21,6 @@ const SHOWN_METRICS: readonly MetricKey[] = [
   "battery_percent",
   "rssi",
 ];
-
-function round1(n: number): number {
-  return Math.round(n * 10) / 10;
-}
 
 /** Jam WIB (0–23, pecahan) dari waktu UTC. */
 function hourWib(t: Date): number {

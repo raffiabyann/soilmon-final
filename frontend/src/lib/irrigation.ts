@@ -1,7 +1,6 @@
 import type { IrrigationEvent } from "@soilmon/shared";
-import { dateKeyWib, formatDateWib, formatWeekdayWib } from "./time";
-
-const DAY_MS = 24 * 60 * 60 * 1000;
+import { round2 } from "./math";
+import { DAY_MS, dateKeyWib, formatDateWib, formatWeekdayWib } from "./time";
 
 export interface DailyIrrigation {
   /** Tanggal WIB "2026-10-14", untuk key React. */
@@ -35,7 +34,7 @@ export function dailyIrrigationTotals(
       dateKey: key,
       dayLabel: formatWeekdayWib(day),
       dateLabel: formatDateWib(day),
-      liters: Math.round(liters * 100) / 100,
+      liters: round2(liters),
       count: sameDay.length,
       isToday: i === 0,
     });

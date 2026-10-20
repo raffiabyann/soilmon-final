@@ -9,12 +9,16 @@ import { IrrigationTable } from "../components/IrrigationTable";
 import { PageHeader } from "../components/PageHeader";
 import { Segmented } from "../components/Segmented";
 import { alertState, formatDuration, minutesToResolve, type AlertState } from "../lib/alerts";
-import { dateKeyWib, formatClockWib, formatLongDateWib, formatShortDateWib } from "../lib/time";
+import {
+  DAY_MS,
+  dateKeyWib,
+  formatClockWib,
+  formatLongDateWib,
+  formatShortDateWib,
+} from "../lib/time";
 import { MOCK_NOW, mockAlerts, mockNodes } from "../mocks/data";
 
 type Filter = "all" | AlertState;
-
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** Label pemisah per hari: "HARI INI · RABU, 14 OKT", "KEMARIN · ...", atau tanggalnya saja. */
 function dayLabel(iso: string): string {
@@ -46,7 +50,6 @@ export function AlertsPage() {
   return (
     <div className="space-y-5">
       <PageHeader
-        eyebrow="Peringatan kebun"
         title="Alerts"
         description="Satu masalah = satu alert. Alert selesai sendiri saat nilai kembali ke batas normal."
         stat={open}
@@ -141,7 +144,7 @@ function StatusSummaryCard({ counts }: { counts: Record<AlertState, number> }) {
 
   return (
     <Card className="flex flex-col gap-4">
-      <CardLabel>Status alert · 7 hari</CardLabel>
+      <CardLabel>Status alert</CardLabel>
       <div className="flex h-2.5 gap-[3px]">
         {rows.map((r) =>
           counts[r.state] > 0 ? (

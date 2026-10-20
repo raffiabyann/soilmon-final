@@ -1,7 +1,8 @@
-import type { Alert, Metric } from "@soilmon/shared";
+import type { Alert } from "@soilmon/shared";
 import { CircleCheck, Sprout, TriangleAlert } from "lucide-react";
 import { Link } from "react-router";
-import { suggestAction } from "../lib/alerts";
+import { alertDirection, suggestAction } from "../lib/alerts";
+import { gaugeScale } from "../lib/gauge";
 import { getMetric } from "../lib/metrics";
 import { dateKeyWib, formatClockWib, formatShortDateWib } from "../lib/time";
 import { MOCK_NOW, mockNodes } from "../mocks/data";
@@ -9,18 +10,6 @@ import { MOCK_NOW, mockNodes } from "../mocks/data";
 interface AlertHeroCardProps {
   alert: Alert;
   onAcknowledge: () => void;
-}
-
-/** Sumbu gauge: % → 0–100; selain itu batas normal diperlebar selebar rentangnya ke kiri-kanan. */
-function scaleFor(metric: Metric, value: number): { lo: number; hi: number } {
-  if (metric.unit === "%") return { lo: 0, hi: 100 };
-  const min = metric.normalMin ?? value;
-  const max = metric.normalMax ?? value;
-  const pad = Math.max((max - min) * 0.75, 1);
-  return {
-    lo: Math.floor(Math.min(min - pad, value)),
-    hi: Math.ceil(Math.max(max + pad, value)),
-  };
 }
 
 /**
@@ -31,14 +20,14 @@ export function AlertHeroCard({ alert, onAcknowledge }: AlertHeroCardProps) {
   const metric = getMetric(alert.metricKey);
   const node = mockNodes.find((n) => n.code === alert.nodeCode);
   const value = node?.latest[alert.metricKey] ?? alert.value;
-  const direction = alert.type === "below_min" ? "terlalu rendah" : "terlalu tinggi";
+  const direction = alertDirection(alert);
   const label = metric?.label ?? alert.metricKey;
   const since =
     dateKeyWib(alert.triggeredAt) === dateKeyWib(MOCK_NOW)
       ? `${formatClockWib(alert.triggeredAt)} WIB`
       : `${formatShortDateWib(alert.triggeredAt)} ${formatClockWib(alert.triggeredAt)}`;
 
-  const scale = metric ? scaleFor(metric, value) : null;
+  const scale = metric ? gaugeScale(metric, value) : null;
   const pct = (v: number) => (scale ? ((v - scale.lo) / (scale.hi - scale.lo)) * 100 : 0);
   const bandStart = metric && scale ? pct(metric.normalMin ?? scale.lo) : 0;
   const bandEnd = metric && scale ? pct(metric.normalMax ?? scale.hi) : 0;
@@ -46,7 +35,7 @@ export function AlertHeroCard({ alert, onAcknowledge }: AlertHeroCardProps) {
   return (
     <div className="flex h-full flex-col gap-5 rounded-[20px] bg-danger p-6 text-on-accent md:p-8 shadow-card">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="flex items-center gap-2 font-mono text-[11px] font-medium tracking-wider uppercase opacity-85">
+        <p className="flex items-center gap-2 font-mono text-[11px] font-medium tracking-wider uppercase">
           <TriangleAlert className="size-4" />
           Alert baru · sejak {since} · {alert.nodeCode} {node?.name}
         </p>
@@ -63,7 +52,7 @@ export function AlertHeroCard({ alert, onAcknowledge }: AlertHeroCardProps) {
       <div className="flex flex-wrap items-center gap-7">
         <p className="flex items-baseline gap-2">
           <span className="text-[44px] leading-none font-bold tracking-tight">{value}</span>
-          <span className="text-sm opacity-80">{metric?.unit ?? label.split(" ")[0]}</span>
+          <span className="text-sm">{metric?.unit ?? label.split(" ")[0]}</span>
         </p>
         {metric && scale && (
           <div className="w-[300px] max-w-full">
@@ -79,11 +68,11 @@ export function AlertHeroCard({ alert, onAcknowledge }: AlertHeroCardProps) {
               />
             </div>
             <div className="mt-2 flex justify-between font-mono text-xs">
-              <span className="opacity-70">{scale.lo}</span>
-              <span className="opacity-85">
+              <span>{scale.lo}</span>
+              <span>
                 normal {metric.normalMin ?? "–"}–{metric.normalMax ?? "–"}
               </span>
-              <span className="opacity-70">{scale.hi}</span>
+              <span>{scale.hi}</span>
             </div>
           </div>
         )}
@@ -102,16 +91,16 @@ export function AlertHeroCard({ alert, onAcknowledge }: AlertHeroCardProps) {
         <button
           type="button"
           onClick={onAcknowledge}
-          className="inline-flex items-center gap-2 rounded-full bg-on-accent px-[18px] py-2.5 text-sm font-semibold text-danger hover:opacity-90"
+          className="inline-flex items-center gap-2 rounded-full bg-on-accent px-[18px] py-2.5 pointer-coarse:py-3.5 text-sm font-semibold text-danger-ink hover:opacity-90"
         >
           <CircleCheck className="size-4" />
           Oke, saya tangani
         </button>
         <Link
           to={`/history?node=${alert.nodeCode}`}
-          className="inline-flex items-center rounded-full border border-on-accent/50 px-[18px] py-2.5 text-sm font-semibold hover:bg-on-accent/10"
+          className="inline-flex items-center rounded-full border border-on-accent/50 px-[18px] py-2.5 pointer-coarse:py-3.5 text-sm font-semibold hover:bg-on-accent/10"
         >
-          Lihat di Data History →
+          Lihat di Data History
         </Link>
       </div>
     </div>

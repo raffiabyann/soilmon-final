@@ -3,6 +3,7 @@ import { Bar, BarChart, Cell, LabelList, ResponsiveContainer, Tooltip, XAxis } f
 import { Card } from "./Card";
 import { CardLabel } from "./CardLabel";
 import { dailyIrrigationTotals, type DailyIrrigation } from "../lib/irrigation";
+import { round2 } from "../lib/math";
 import { formatClockWib, formatShortDateWib } from "../lib/time";
 import { MOCK_NOW, mockIrrigationEvents } from "../mocks/data";
 
@@ -12,7 +13,7 @@ import { MOCK_NOW, mockIrrigationEvents } from "../mocks/data";
  */
 export function IrrigationCard() {
   const daily = dailyIrrigationTotals(mockIrrigationEvents, MOCK_NOW);
-  const totalLiters = Math.round(daily.reduce((sum, d) => sum + d.liters, 0) * 100) / 100;
+  const totalLiters = round2(daily.reduce((sum, d) => sum + d.liters, 0));
   const totalCount = daily.reduce((sum, d) => sum + d.count, 0);
   const last = mockIrrigationEvents[0];
 

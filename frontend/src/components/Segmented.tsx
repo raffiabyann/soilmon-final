@@ -36,7 +36,7 @@ export function Segmented<T extends string>({
             role="radio"
             aria-checked={active}
             onClick={() => onChange(o.value)}
-            className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs whitespace-nowrap transition-colors ${
+            className={`flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs pointer-coarse:min-h-11 whitespace-nowrap transition-colors ${
               active
                 ? "bg-surface font-semibold text-ink shadow-card"
                 : "text-ink-muted hover:text-ink"
@@ -44,7 +44,7 @@ export function Segmented<T extends string>({
           >
             {o.label}
             {o.count !== undefined && (
-              <span className={`font-mono ${active ? "text-ink-soft" : "text-ink-faint"}`}>
+              <span className={`font-mono ${active ? "text-ink-soft" : "text-ink-muted"}`}>
                 {o.count}
               </span>
             )}

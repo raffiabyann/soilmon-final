@@ -1,4 +1,4 @@
-import { isOnline, type MetricKey } from "@soilmon/shared";
+import { isOnline } from "@soilmon/shared";
 import type { LucideIcon } from "lucide-react";
 import { BatteryMedium, Download, Droplets, TriangleAlert, WifiOff } from "lucide-react";
 import { useState } from "react";
@@ -28,12 +28,12 @@ type Range = "24h" | "7d";
 const HOURS: Record<Range, number> = { "24h": 24, "7d": 168 };
 const RANGE_TEXT: Record<Range, string> = { "24h": "24 jam", "7d": "7 hari" };
 
-/** Warna sel heatmap (komponen Figma "HeatCell"). */
+/** Warna sel heatmap (komponen Figma "HeatCell"). Penuh/Buruk solid: versi /85 di bawah 4.5:1 untuk teks 12px. */
 const HEAT: Record<HeatLevel, string> = {
-  Penuh: "bg-ok/85 text-on-accent",
+  Penuh: "bg-ok text-on-accent",
   Baik: "bg-ok/28 text-ink",
   Sebagian: "bg-accent/30 text-ink",
-  Buruk: "bg-danger/85 text-on-accent",
+  Buruk: "bg-danger text-on-accent",
   Kosong: "bg-line-soft text-ink-muted",
 };
 
@@ -60,7 +60,6 @@ export function ReportsPage() {
   return (
     <div className="space-y-5">
       <PageHeader
-        eyebrow="Laporan kebun"
         title="Reports"
         description="Ringkasan min, rata-rata, dan maks tiap metrik per node, dibandingkan dengan batas normal."
         stat={packetTotal}
@@ -98,7 +97,7 @@ export function ReportsPage() {
         <button
           type="button"
           onClick={downloadCsv}
-          className="inline-flex items-center gap-2 rounded-full bg-brand px-4 py-2 text-xs font-semibold text-on-accent hover:bg-brand-strong"
+          className="inline-flex items-center gap-2 rounded-full bg-brand px-4 py-2 text-xs font-semibold text-on-accent hover:bg-brand-strong pointer-coarse:min-h-11"
         >
           <Download className="size-4" /> Unduh CSV
         </button>
@@ -146,7 +145,7 @@ function NodeSummaryCard({
       </div>
       <p className="flex items-baseline gap-2.5">
         <span
-          className={`text-[30px] leading-none font-bold tracking-tight ${good ? "text-ink" : "text-danger"}`}
+          className={`text-[30px] leading-none font-bold tracking-tight ${good ? "text-ink" : "text-danger-ink"}`}
         >
           {report.inRangePercent}%
         </span>
@@ -291,7 +290,7 @@ function WeeklyNotes({
       if (m.status === "danger") {
         notes.push({
           icon: TriangleAlert,
-          tone: "text-danger",
+          tone: "text-danger-ink",
           title: `${label} ${r.nodeCode} ${m.direction === "low" ? "terus turun" : "terus naik"}`,
           text: `${m.min}–${m.max} selama ${rangeText}, rata-rata ${m.avg} di luar batas.${advice}`,
         });
@@ -312,13 +311,13 @@ function WeeklyNotes({
     title: pump.count > 0 ? "Pompa bekerja" : "Pompa tidak menyala",
     text:
       pump.count > 0
-        ? `${pump.count}× menyala, ${pump.liters} L. Kelembaban kembali ke batas normal setelah pompa.`
+        ? `${pump.count}× menyala, ${pump.liters} L.`
         : `Tidak ada penyiraman dalam ${rangeText}.`,
   });
   const signals = reports
     .map((r) => ({
       code: r.nodeCode,
-      avg: r.metrics.find((m) => m.metricKey === ("rssi" as MetricKey))?.avg,
+      avg: r.metrics.find((m) => m.metricKey === "rssi")?.avg,
     }))
     .filter((s): s is { code: string; avg: number } => s.avg !== undefined)
     .sort((a, b) => a.avg - b.avg);

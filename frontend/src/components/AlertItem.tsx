@@ -3,6 +3,7 @@ import type { LucideIcon } from "lucide-react";
 import { CircleCheck, Eye, TriangleAlert } from "lucide-react";
 import { Badge, type BadgeTone } from "./Badge";
 import {
+  alertDirection,
   alertState,
   formatDuration,
   minutesToResolve,
@@ -26,43 +27,45 @@ interface AlertItemProps {
 /** Gaya per keadaan (komponen Figma "AlertItem", Status=Aktif/Dibaca/Selesai). */
 const STYLE: Record<
   AlertState,
-  { icon: LucideIcon; label: string; box: string; icon_: string; badge: BadgeTone }
+  { icon: LucideIcon; label: string; box: string; iconClass: string; badge: BadgeTone }
 > = {
   active: {
     icon: TriangleAlert,
     label: "Aktif",
     box: "border-danger-line bg-danger-soft",
-    icon_: "text-danger",
+    iconClass: "text-danger-ink",
     badge: "danger",
   },
   acknowledged: {
     icon: Eye,
     label: "Dibaca",
     box: "border-accent/30 bg-accent-soft/60",
-    icon_: "text-accent",
+    iconClass: "text-accent",
     badge: "warning",
   },
   resolved: {
     icon: CircleCheck,
     label: "Selesai",
     box: "border-ok/25 bg-ok-soft",
-    icon_: "text-ok",
+    iconClass: "text-ok",
     badge: "ok",
   },
 };
 
 /** Kalimat penutup untuk alert selesai; sebut pompa kalau pompa menyala di antara mulai-selesai. */
 function resolvedNote(alert: Alert): string {
-  if (!alert.resolvedAt) return "";
+  const { resolvedAt } = alert;
+  if (!resolvedAt) return "";
   const pump = mockIrrigationEvents.find(
     (e) =>
       e.nodeCode === alert.nodeCode &&
       e.startedAt >= alert.triggeredAt &&
-      e.startedAt <= alert.resolvedAt!,
+      e.startedAt <= resolvedAt,
   );
-  const back = `Kembali normal ${formatClockWib(alert.resolvedAt)}.`;
+  const back = `Kembali normal ${formatClockWib(resolvedAt)}.`;
   if (pump) {
-    return `Pompa menyala otomatis ${formatClockWib(pump.startedAt)} (${pump.volumeLiters} L, ${pump.durationSeconds} detik). ${back}`;
+    const how = pump.triggerType === "auto" ? "otomatis" : "manual";
+    return `Pompa menyala ${how} ${formatClockWib(pump.startedAt)} (${pump.volumeLiters} L, ${pump.durationSeconds} detik). ${back}`;
   }
   return `Saran: ${suggestAction(alert)} ${back}`;
 }
@@ -72,7 +75,7 @@ export function AlertItem({ alert, acknowledged, ackLabel, onAcknowledge }: Aler
   const style = STYLE[state];
   const metric = getMetric(alert.metricKey);
   const node = mockNodes.find((n) => n.code === alert.nodeCode);
-  const direction = alert.type === "below_min" ? "terlalu rendah" : "terlalu tinggi";
+  const direction = alertDirection(alert);
   const when = alert.resolvedAt
     ? `${formatClockWib(alert.triggeredAt)} → ${formatClockWib(alert.resolvedAt)} WIB`
     : `mulai ${formatClockWib(alert.triggeredAt)} WIB`;
@@ -84,7 +87,7 @@ export function AlertItem({ alert, acknowledged, ackLabel, onAcknowledge }: Aler
         {formatClockWib(alert.triggeredAt)}
       </span>
       <span className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-surface">
-        <style.icon className={`size-[18px] ${style.icon_}`} />
+        <style.icon className={`size-[18px] ${style.iconClass}`} />
       </span>
       <div className="min-w-0 flex-1 basis-40">
         <p className="flex flex-wrap items-baseline gap-x-2.5">
@@ -108,7 +111,7 @@ export function AlertItem({ alert, acknowledged, ackLabel, onAcknowledge }: Aler
           <button
             type="button"
             onClick={onAcknowledge}
-            className="rounded-full border border-line bg-surface px-3 py-1.5 text-xs font-semibold text-ink hover:bg-line-soft"
+            className="rounded-full border border-line bg-surface px-3 py-1.5 text-xs font-semibold text-ink hover:bg-line-soft pointer-coarse:min-h-11"
           >
             Tandai dibaca
           </button>

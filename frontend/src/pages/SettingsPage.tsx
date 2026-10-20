@@ -5,7 +5,6 @@ export function SettingsPage() {
   return (
     <div className="space-y-5">
       <PageHeader
-        eyebrow="Pengaturan sistem"
         title="Settings"
         description="Batas normal metrik, debit pompa, dan akun pengguna."
       />

@@ -23,16 +23,20 @@ import {
 import { Badge, type BadgeTone } from "./Badge";
 import { Card } from "./Card";
 import { CardLabel } from "./CardLabel";
-import { formatValue, getMetric } from "../lib/metrics";
+import { round1 } from "../lib/math";
+import { formatValue, getMetric, normalRangeText } from "../lib/metrics";
 import { formatClockWib } from "../lib/time";
 
 /** Warna grafik lewat token CSS, jadi otomatis ikut mode gelap. */
 const C = {
   line: "var(--color-water)",
-  axis: "var(--color-ink-faint)",
+  axis: "var(--color-ink-muted)",
   grid: "var(--color-line-soft)",
   band: "var(--color-ok)",
   danger: "var(--color-danger)",
+  // Teks label 11px: token -ink supaya lolos 4.5:1 di kedua tema.
+  lineText: "var(--color-water-ink)",
+  dangerText: "var(--color-danger-ink)",
   surface: "var(--color-surface)",
 };
 
@@ -42,10 +46,6 @@ const STATUS_BADGE: Record<MetricStatus, { tone: BadgeTone; label: string }> = {
   high: { tone: "danger", label: "Tinggi" },
   unknown: { tone: "neutral", label: "–" },
 };
-
-function round1(n: number): number {
-  return Math.round(n * 10) / 10;
-}
 
 function seriesFor(readings: TelemetryReading[], metricKey: MetricKey) {
   const rows = readings
@@ -64,11 +64,7 @@ function seriesFor(readings: TelemetryReading[], metricKey: MetricKey) {
 
 function rangeText(metricKey: MetricKey): string {
   const m = getMetric(metricKey);
-  if (!m || (m.normalMin === null && m.normalMax === null)) return "tanpa batas normal";
-  const unit = m.unit === "%" ? "%" : "";
-  if (m.normalMax === null) return `normal ≥ ${m.normalMin}${unit}`;
-  if (m.normalMin === null) return `normal ≤ ${m.normalMax}${unit}`;
-  return `normal ${m.normalMin}–${m.normalMax}${unit}`;
+  return (m && normalRangeText(m)) || "tanpa batas normal";
 }
 
 function statusOf(metricKey: MetricKey, latest: number | undefined): MetricStatus {
@@ -218,7 +214,7 @@ export function HeroMetricChart({
                 label={{
                   value: `Pompa ${p.volumeLiters} L · ${formatClockWib(p.startedAt)}`,
                   position: "insideTopRight",
-                  fill: C.line,
+                  fill: C.lineText,
                   fontSize: 11,
                   fontWeight: 600,
                 }}
@@ -245,7 +241,7 @@ export function HeroMetricChart({
                 label={{
                   value: `${formatValue(r.value, metricKey)} · ${formatClockWib(new Date(r.t))}`,
                   position: "bottom",
-                  fill: C.danger,
+                  fill: C.dangerText,
                   fontSize: 11,
                   fontWeight: 600,
                 }}
@@ -256,7 +252,7 @@ export function HeroMetricChart({
       </div>
 
       <div className="mt-3 flex flex-wrap items-center justify-between gap-2 border-t border-line pt-3 text-xs text-ink-muted">
-        <span>Pita hijau = batas {rangeText(metricKey)}</span>
+        <span>Pita hijau = {rangeText(metricKey)}</span>
         <span>
           {max} tertinggi · {min} terendah · {avg} rata-rata
         </span>

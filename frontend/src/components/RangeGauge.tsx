@@ -1,4 +1,5 @@
 import { getMetricStatus, type Metric } from "@soilmon/shared";
+import { gaugeScale, type GaugeScale } from "../lib/gauge";
 
 interface RangeGaugeProps {
   value: number;
@@ -6,35 +7,13 @@ interface RangeGaugeProps {
   className?: string;
 }
 
-interface Scale {
-  lo: number;
-  hi: number;
-}
-
-/**
- * Rentang sumbu gauge:
- * - satuan % → 0 sampai 100;
- * - punya batas bawah & atas → batas normal diperlebar 50% ke kiri dan kanan;
- * - selain itu tidak digambar (belum ada batas normal untuk dibandingkan).
- */
-function scaleFor(metric: Metric): Scale | null {
-  if (metric.unit === "%") {
-    return { lo: 0, hi: 100 };
-  }
-  if (metric.normalMin !== null && metric.normalMax !== null) {
-    const pad = (metric.normalMax - metric.normalMin) * 0.5;
-    return { lo: metric.normalMin - pad, hi: metric.normalMax + pad };
-  }
-  return null;
-}
-
-function toPercent(v: number, s: Scale): number {
+function toPercent(v: number, s: GaugeScale): number {
   return Math.min(100, Math.max(0, ((v - s.lo) / (s.hi - s.lo)) * 100));
 }
 
 /** Bar kecil di tabel: pita = batas normal, titik = nilai bacaan. Titik merah kalau di luar batas. */
 export function RangeGauge({ value, metric, className = "w-[84px]" }: RangeGaugeProps) {
-  const scale = metric ? scaleFor(metric) : null;
+  const scale = metric ? gaugeScale(metric) : null;
   if (!metric || !scale) {
     return null;
   }

@@ -26,7 +26,7 @@ export function ThemeToggle() {
             aria-label={o.label}
             title={o.label}
             onClick={() => setTheme(o.value)}
-            className={`grid size-[30px] place-items-center rounded-full transition-colors ${
+            className={`grid size-[30px] place-items-center pointer-coarse:size-11 rounded-full transition-colors ${
               active ? "bg-surface shadow-card" : "text-ink-muted hover:text-ink"
             } ${active && o.value === "light" ? "text-accent" : ""} ${
               active && o.value === "dark" ? "text-ink" : ""

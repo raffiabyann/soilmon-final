@@ -1,6 +1,6 @@
 import type { MetricKey } from "@soilmon/shared";
 import { Badge, type BadgeTone } from "./Badge";
-import { getMetric } from "../lib/metrics";
+import { getMetric, normalRangeText } from "../lib/metrics";
 import type { MetricSummary } from "../lib/reports";
 
 /** Sumbu gauge tiap metrik (sama dengan Figma). */
@@ -26,10 +26,7 @@ function unitLine(key: MetricKey): string {
   const m = getMetric(key);
   if (!m) return "";
   const unit = m.unit ? `${m.unit} · ` : "";
-  if (m.normalMin === null && m.normalMax === null) return `${unit}tanpa batas`;
-  if (m.normalMax === null) return `${unit}normal ≥ ${m.normalMin}`;
-  if (m.normalMin === null) return `${unit}normal ≤ ${m.normalMax}`;
-  return `${unit}normal ${m.normalMin}–${m.normalMax}`;
+  return `${unit}${normalRangeText(m) || "tanpa batas normal"}`;
 }
 
 function fmt(v: number, key: MetricKey): string {
