@@ -5,7 +5,6 @@ import { useState } from "react";
 import { Badge } from "../components/Badge";
 import { Card } from "../components/Card";
 import { CardLabel } from "../components/CardLabel";
-import { DemoDataNotice } from "../components/DemoDataNotice";
 import { PageHeader } from "../components/PageHeader";
 import { Segmented } from "../components/Segmented";
 import { SummaryRow } from "../components/SummaryRow";
@@ -66,10 +65,6 @@ export function ReportsPage() {
         stat={packetTotal}
         statCaption={`paket · ${mockNodes.length} node · ${RANGE_TEXT[range]}`}
       />
-
-      <DemoDataNotice>
-        Ringkasan di halaman ini dihitung dari data contoh, bukan dari bacaan sensor.
-      </DemoDataNotice>
 
       <Card padded={false} className="flex flex-wrap items-center gap-4 px-4 py-3.5">
         <Segmented

@@ -4,7 +4,7 @@
  * jadi klien ini tidak mengonversinya.
  */
 
-/** Node yang dipakai demo UTS. Belum ada endpoint daftar node (keputusan Stage 2). */
+/** Node yang ditampilkan di baris "Data masuk" Dashboard. */
 export const TELEMETRY_NODE_CODE = "node-01";
 
 /** Satu record telemetry seperti dikirim backend. */

@@ -10,14 +10,25 @@ const TONE: Record<BadgeTone, { box: string; dot: string }> = {
   neutral: { box: "bg-line-soft text-ink-muted", dot: "bg-ink-faint" },
 };
 
-/** Pil status dengan titik warna (komponen Figma "Badge"). Warna selalu ditemani teks. */
-export function Badge({ tone, children }: { tone: BadgeTone; children: ReactNode }) {
+/**
+ * Label berwarna (komponen Figma "Badge"). Warna selalu ditemani teks.
+ * `dot` hanya untuk status yang sedang berlangsung, misalnya koneksi ke backend.
+ */
+export function Badge({
+  tone,
+  dot = false,
+  children,
+}: {
+  tone: BadgeTone;
+  dot?: boolean;
+  children: ReactNode;
+}) {
   const style = TONE[tone];
   return (
     <span
       className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap ${style.box}`}
     >
-      <span className={`size-1.5 rounded-full ${style.dot}`} />
+      {dot && <span className={`size-1.5 rounded-full ${style.dot}`} />}
       {children}
     </span>
   );

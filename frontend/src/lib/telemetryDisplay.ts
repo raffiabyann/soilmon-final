@@ -1,14 +1,9 @@
 import type { BadgeTone } from "../components/Badge";
 import type { TelemetryFeed } from "./useTelemetryFeed";
 
-/** Alamat register Modbus dari posisinya di rawRegisters, contoh 0 → "0x0000". */
-export function registerAddress(index: number): string {
-  return `0x${index.toString(16).toUpperCase().padStart(4, "0")}`;
-}
-
 /** Tegangan baterai seperti dilaporkan node (volt, belum dikalibrasi). */
 export function formatBatteryVoltage(volts: number | null): string {
-  return volts === null ? "—" : `${volts.toFixed(2)} V`;
+  return volts === null ? "-" : `${volts.toFixed(2)} V`;
 }
 
 /** Status koneksi untuk badge: data lama tetap tampil kalau refresh terakhir gagal. */

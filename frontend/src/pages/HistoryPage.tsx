@@ -4,10 +4,8 @@ import { useState, type ReactNode } from "react";
 import { useSearchParams } from "react-router";
 import { Badge } from "../components/Badge";
 import { Card } from "../components/Card";
-import { DemoDataNotice } from "../components/DemoDataNotice";
 import { PageHeader } from "../components/PageHeader";
 import { RangeGauge } from "../components/RangeGauge";
-import { RawTelemetryHistory } from "../components/RawTelemetryHistory";
 import { Segmented } from "../components/Segmented";
 import { getMetric } from "../lib/metrics";
 import { groupPackets } from "../lib/packets";
@@ -34,29 +32,8 @@ const COLUMNS: { key: MetricKey; label: string }[] = [
 
 const ALL = "all";
 
-type Source = "api" | "mock";
-
-/** Data History: telemetry asli dari API backend, atau tampilan data contoh dari desain Figma. */
+/** Data History (Figma: "Data History · Redesign"): satu baris = satu paket dari node. Data dari mocks/. */
 export function HistoryPage() {
-  const [source, setSource] = useState<Source>("api");
-  return (
-    <div className="space-y-5">
-      <Segmented
-        ariaLabel="Sumber data"
-        value={source}
-        onChange={setSource}
-        options={[
-          { value: "api", label: "Telemetry backend (API)" },
-          { value: "mock", label: "Data contoh" },
-        ]}
-      />
-      {source === "api" ? <RawTelemetryHistory /> : <MockHistory />}
-    </div>
-  );
-}
-
-/** Data History (Figma: "Data History · Redesign"): satu baris = satu paket dari node. Data contoh. */
-function MockHistory() {
   const [params, setParams] = useSearchParams();
   const nodeParam = params.get("node");
   const nodeFilter = mockNodes.some((n) => n.code === nodeParam) ? (nodeParam ?? ALL) : ALL;
@@ -91,11 +68,6 @@ function MockHistory() {
         stat={packets.length}
         statCaption={`paket · ${readingCount} bacaan · ${RANGE_LABEL[range].replace(" terakhir", "")}`}
       />
-
-      <DemoDataNotice>
-        Tabel ini memakai data contoh (mock), bukan bacaan sensor. Data asli ada di tab Telemetry
-        backend.
-      </DemoDataNotice>
 
       <Card padded={false} className="flex flex-wrap items-center gap-3 px-4 py-3.5">
         <Segmented
@@ -255,7 +227,7 @@ function LabeledSelect({
   children: ReactNode;
 }) {
   return (
-    <label className="relative flex flex-col rounded-xl border border-line px-3.5 py-1.5 focus-within:border-brand">
+    <label className="relative flex flex-col rounded-xl border border-line px-3.5 py-1.5 focus-within:border-brand focus-within:ring-2 focus-within:ring-brand">
       <span className="font-mono text-[9px] tracking-wider text-ink-muted uppercase">{label}</span>
       <select
         value={value}

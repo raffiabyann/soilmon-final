@@ -5,7 +5,6 @@ import { AlertHeroCard } from "../components/AlertHeroCard";
 import { AlertItem } from "../components/AlertItem";
 import { Card } from "../components/Card";
 import { CardLabel } from "../components/CardLabel";
-import { DemoDataNotice } from "../components/DemoDataNotice";
 import { IrrigationTable } from "../components/IrrigationTable";
 import { PageHeader } from "../components/PageHeader";
 import { Segmented } from "../components/Segmented";
@@ -56,10 +55,6 @@ export function AlertsPage() {
         stat={open}
         statCaption={`alert aktif · ${counts.active} belum dibaca`}
       />
-
-      <DemoDataNotice>
-        Alert dan riwayat irigasi di halaman ini berasal dari data contoh, bukan dari bacaan sensor.
-      </DemoDataNotice>
 
       <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_420px]">
         {hero ? (

@@ -5,6 +5,7 @@ import { Card } from "./Card";
 import { CardLabel } from "./CardLabel";
 import { round2 } from "../lib/math";
 import { getMetric } from "../lib/metrics";
+import { useNow } from "../lib/useNow";
 import { dateKeyWib, formatClockWib, formatTimeWib } from "../lib/time";
 import { MOCK_NOW, mockAlerts, mockGateways, mockIrrigationEvents, mockNodes } from "../mocks/data";
 
@@ -36,6 +37,7 @@ const DOT: Record<Kpi["tone"], string> = { ok: "bg-ok", danger: "bg-danger", wat
  * chip masalah, lalu 4 angka ringkas (gateway, node, alert, air hari ini).
  */
 export function GreetingCard() {
+  const now = useNow(60_000);
   const gateway = mockGateways[0];
   const gatewayOnline = gateway ? isOnline(gateway.lastSeenAt, MOCK_NOW) : false;
   const offlineNodes = mockNodes.filter((n) => !isOnline(n.lastSeenAt, MOCK_NOW));
@@ -97,11 +99,10 @@ export function GreetingCard() {
   ];
 
   return (
-    <Card className="flex h-full flex-col justify-between gap-6">
+    <Card className="flex flex-col gap-6">
       <div>
-        <CardLabel>Kebun Belimbing · Tuban</CardLabel>
-        <h2 className="mt-3 text-[28px] leading-tight font-bold tracking-tight text-ink">
-          {greeting(MOCK_NOW)}.{" "}
+        <h2 className="text-[28px] leading-tight font-bold tracking-tight text-ink">
+          {greeting(now)}.{" "}
           {issues.length > 0
             ? `Ada ${issues.length} hal yang perlu kamu cek hari ini.`
             : "Kebun dalam kondisi baik."}
@@ -117,9 +118,6 @@ export function GreetingCard() {
                     : "bg-line-soft text-ink-soft"
                 }`}
               >
-                <span
-                  className={`size-1.5 rounded-full ${i.tone === "danger" ? "bg-danger" : "bg-ink-faint"}`}
-                />
                 {i.text}
               </span>
             ))}

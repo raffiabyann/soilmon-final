@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { Bell, ChartLine, FileText, LayoutDashboard, Settings } from "lucide-react";
+import { Bell, ChartLine, FileText, LayoutDashboard } from "lucide-react";
 
 export interface NavItem {
   path: string;
@@ -12,5 +12,9 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { path: "/history", label: "Data History", icon: ChartLine },
   { path: "/alerts", label: "Alerts", icon: Bell },
   { path: "/reports", label: "Reports", icon: FileText },
-  { path: "/settings", label: "Settings", icon: Settings },
 ];
+
+/** Cocokkan URL dengan menu; "/" hanya aktif kalau persis di beranda. */
+export function isNavActive(path: string, pathname: string): boolean {
+  return path === "/" ? pathname === "/" : pathname.startsWith(path);
+}

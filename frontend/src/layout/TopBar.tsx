@@ -1,11 +1,9 @@
 import { LogoStrip } from "./LogoStrip";
 import { ThemeToggle } from "./ThemeToggle";
-import { MOCK_NOW } from "../mocks/data";
-import { formatLongDateWib, formatTimeWib } from "../lib/time";
 
 /**
- * Baris paling atas: 4 logo mitra di kiri, kredit pembuat di tengah, lalu tema, label data contoh,
- * dan tanggal di kanan. Di bawah xl kredit turun ke baris sendiri supaya tidak berdesakan.
+ * Baris paling atas: logo mitra di kiri, kredit pembuat di tengah, tombol tema di kanan.
+ * Di bawah xl kredit turun ke baris sendiri supaya tidak berdesakan.
  */
 export function TopBar() {
   return (
@@ -17,16 +15,8 @@ export function TopBar() {
           Universitas Multimedia Nusantara &amp; PT. IDE Kreatif Teknologi
         </span>
       </p>
-      <div className="flex items-center gap-4 xl:justify-self-end">
+      <div className="flex items-center xl:justify-self-end">
         <ThemeToggle />
-        <span className="inline-flex items-center gap-1.5 rounded-full bg-accent-soft px-2.5 py-1 text-xs font-semibold text-accent">
-          <span className="size-1.5 rounded-full bg-accent" />
-          Data contoh
-        </span>
-        <div className="text-right">
-          <p className="text-sm font-semibold text-ink">{formatLongDateWib(MOCK_NOW)}</p>
-          <p className="text-xs text-ink-muted">{formatTimeWib(MOCK_NOW)}</p>
-        </div>
       </div>
     </header>
   );

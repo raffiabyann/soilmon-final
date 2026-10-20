@@ -66,6 +66,18 @@ export function formatDateTimeWib(iso: string | Date): string {
   return `${text} WIB`;
 }
 
+/** Selisih waktu yang mudah dibaca, contoh "baru saja", "3 menit lalu", "2 hari lalu". */
+export function formatAgo(iso: string | Date, now: Date): string {
+  const seconds = Math.max(0, Math.floor((now.getTime() - new Date(iso).getTime()) / 1000));
+  if (seconds < 10) return "baru saja";
+  if (seconds < 60) return `${seconds} detik lalu`;
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes} menit lalu`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} jam lalu`;
+  return `${Math.floor(hours / 24)} hari lalu`;
+}
+
 /** Jam saja tanpa "WIB", contoh "08.40". Untuk kolom monospace. */
 export function formatClockWib(iso: string | Date): string {
   return formatTimeWib(iso).replace(" WIB", "");
