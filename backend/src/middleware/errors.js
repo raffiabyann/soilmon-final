@@ -1,8 +1,21 @@
 // Error body shape { error: { code, message } } follows the conceptual model in
 // 05 API-08. Field names and codes are provisional until 07 OAPI-06 is decided.
 
-export function sendError(res, status, code, message) {
-  res.status(status).json({ error: { code, message } });
+// An error whose status, code, message and optional details are meant for the client.
+// details lists the request parts that failed, as [{ field, message }] (05 API-08).
+export class ApiError extends Error {
+  constructor(status, code, message, details) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.code = code;
+    this.details = details;
+  }
+}
+
+export function sendError(res, status, code, message, details) {
+  const error = details ? { code, message, details } : { code, message };
+  res.status(status).json({ error });
 }
 
 export function notFoundHandler(req, res) {
@@ -24,6 +37,9 @@ export function errorHandler(err, req, res, next) {
     return next(err);
   }
 
+  if (err instanceof ApiError) {
+    return sendError(res, err.status, err.code, err.message, err.details);
+  }
   if (err.type === "entity.parse.failed") {
     return sendError(res, 400, "invalid_json", "Request body is not valid JSON.");
   }

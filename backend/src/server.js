@@ -1,6 +1,7 @@
 import { createApp } from "./app.js";
 import { ConfigError, loadConfig } from "./config/env.js";
-import { closePool } from "./db/pool.js";
+import { closePool, getPool } from "./db/pool.js";
+import { createTelemetryStore } from "./telemetry/store.js";
 
 let config;
 try {
@@ -13,7 +14,14 @@ try {
   throw err;
 }
 
-const server = createApp().listen(config.port, () => {
+let telemetryStore = null;
+if (config.databaseUrl) {
+  telemetryStore = createTelemetryStore(getPool(config));
+} else {
+  console.warn("DATABASE_URL is not set; telemetry endpoints will respond 503.");
+}
+
+const server = createApp({ telemetryStore }).listen(config.port, () => {
   console.log(`SoilMon backend listening on port ${config.port} (${config.nodeEnv})`);
 });
 

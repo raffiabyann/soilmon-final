@@ -51,6 +51,21 @@ export function formatLongDateWib(iso: string | Date): string {
   return `${weekday}, ${formatShortDateWib(d)} ${new Intl.DateTimeFormat("id-ID", { timeZone: WIB, year: "numeric" }).format(d)}`;
 }
 
+/** Tanggal dan jam lengkap dengan detik menurut WIB, contoh "20 Okt 2026, 14.54.13 WIB". */
+export function formatDateTimeWib(iso: string | Date): string {
+  const text = new Intl.DateTimeFormat("id-ID", {
+    timeZone: WIB,
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).format(new Date(iso));
+  return `${text} WIB`;
+}
+
 /** Jam saja tanpa "WIB", contoh "08.40". Untuk kolom monospace. */
 export function formatClockWib(iso: string | Date): string {
   return formatTimeWib(iso).replace(" WIB", "");
