@@ -37,6 +37,22 @@ export function createTelemetryRouter(store) {
     res.status(201).json({ data: record });
   });
 
+  router.get("/nodes", async (_req, res) => {
+    res.json({ data: await requireStore().listNodes() });
+  });
+
+  router.get("/nodes/:nodeCode", async (req, res) => {
+    const { nodeCode } = req.params;
+    if (!isValidNodeCode(nodeCode)) {
+      throw new ApiError(404, "not_found", "Node not found.");
+    }
+    const node = await requireStore().getNode(nodeCode);
+    if (!node) {
+      throw new ApiError(404, "not_found", "Node not found.");
+    }
+    res.json({ data: node });
+  });
+
   router.get("/nodes/:nodeCode/telemetry", async (req, res) => {
     const { nodeCode } = req.params;
     // A code that could never be registered cannot name an existing node.

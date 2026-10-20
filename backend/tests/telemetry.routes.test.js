@@ -21,8 +21,17 @@ const RECORD = {
 
 const VALID = { nodeCode: "node-01", rawRegisters: [1, 2, 3, 4, 5, 6, 7], batteryVoltage: 3.31 };
 
+const NODE = { code: "node-01", lastReceivedAt: "2026-10-20T05:12:30.000Z" };
+
 function freshState() {
-  return { calls: [], insertResult: RECORD, listResult: [RECORD], error: null };
+  return {
+    calls: [],
+    insertResult: RECORD,
+    listResult: [RECORD],
+    nodesResult: [NODE],
+    nodeResult: NODE,
+    error: null,
+  };
 }
 
 // The app keeps a reference to this object, so tests reset its state instead of replacing it.
@@ -38,6 +47,16 @@ function fakeStore() {
       this.calls.push(["listRecords", nodeCode, options]);
       if (this.error) throw this.error;
       return this.listResult;
+    },
+    async listNodes() {
+      this.calls.push(["listNodes"]);
+      if (this.error) throw this.error;
+      return this.nodesResult;
+    },
+    async getNode(nodeCode) {
+      this.calls.push(["getNode", nodeCode]);
+      if (this.error) throw this.error;
+      return this.nodeResult;
     },
   };
 }
@@ -170,6 +189,33 @@ describe("telemetry routes", () => {
     assert.equal(store.calls.length, 0);
   });
 
+  test("GET /nodes lists the registered nodes", async () => {
+    const res = await fetch(`${baseUrl}/api/v1/nodes`);
+    assert.equal(res.status, 200);
+    assert.deepEqual(await res.json(), { data: [NODE] });
+    assert.deepEqual(store.calls, [["listNodes"]]);
+  });
+
+  test("GET /nodes/{node} returns one node", async () => {
+    const res = await fetch(`${baseUrl}/api/v1/nodes/node-01`);
+    assert.equal(res.status, 200);
+    assert.deepEqual(await res.json(), { data: NODE });
+    assert.deepEqual(store.calls, [["getNode", "node-01"]]);
+  });
+
+  test("GET /nodes/{node} for an unregistered node is a 404", async () => {
+    store.nodeResult = null;
+    const res = await fetch(`${baseUrl}/api/v1/nodes/node-99`);
+    assert.equal(res.status, 404);
+    assert.equal((await res.json()).error.code, "not_found");
+  });
+
+  test("GET /nodes/{node} with a code that cannot exist is a 404 without a database call", async () => {
+    const res = await fetch(`${baseUrl}/api/v1/nodes/bad%20code`);
+    assert.equal(res.status, 404);
+    assert.equal(store.calls.length, 0);
+  });
+
   test("GET on the ingestion path is a 404", async () => {
     const res = await fetch(`${baseUrl}/api/v1/telemetry`);
     assert.equal(res.status, 404);
@@ -202,6 +248,11 @@ describe("telemetry routes without a database", () => {
 
   test("GET responds 503 when no store is configured", async () => {
     const res = await fetch(`${baseUrl}/api/v1/nodes/node-01/telemetry`);
+    assert.equal(res.status, 503);
+  });
+
+  test("GET /nodes responds 503 when no store is configured", async () => {
+    const res = await fetch(`${baseUrl}/api/v1/nodes`);
     assert.equal(res.status, 503);
   });
 

@@ -114,6 +114,38 @@ describe("telemetry store: listRecords", () => {
   });
 });
 
+describe("telemetry store: nodes", () => {
+  test("lists nodes ordered by code, with the last received time", async () => {
+    const db = fakeDb({
+      rows: [
+        { code: "node-01", last_received_at: new Date("2026-10-20T05:12:30.000Z") },
+        { code: "node-02", last_received_at: null },
+      ],
+    });
+    const nodes = await createTelemetryStore(db).listNodes();
+
+    assert.deepEqual(db.calls[0].params, []);
+    assert.match(db.calls[0].text, /ORDER BY n\.code/);
+    assert.deepEqual(nodes, [
+      { code: "node-01", lastReceivedAt: "2026-10-20T05:12:30.000Z" },
+      { code: "node-02", lastReceivedAt: null },
+    ]);
+  });
+
+  test("gets one node with the code as a parameter only", async () => {
+    const db = fakeDb({ rows: [{ code: HOSTILE, last_received_at: null }] });
+    const node = await createTelemetryStore(db).getNode(HOSTILE);
+
+    assert.deepEqual(db.calls[0].params, [HOSTILE]);
+    assert.doesNotMatch(db.calls[0].text, /DROP/);
+    assert.deepEqual(node, { code: HOSTILE, lastReceivedAt: null });
+  });
+
+  test("returns null when the node is not registered", async () => {
+    assert.equal(await createTelemetryStore(fakeDb({ rows: [] })).getNode("ghost"), null);
+  });
+});
+
 describe("telemetry store: database errors", () => {
   const unavailable = [
     Object.assign(new Error("connect ECONNREFUSED 127.0.0.1:5432"), { code: "ECONNREFUSED" }),

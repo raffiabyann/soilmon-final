@@ -108,6 +108,25 @@ describe("telemetry store against PostgreSQL", () => {
       );
     }));
 
+  test("lists nodes with the time of their newest record", { skip }, () =>
+    inRollback(async (store) => {
+      await client.query("INSERT INTO nodes (code) VALUES ($1), ($2)", ["itest-a", "itest-b"]);
+      const record = await store.insertRecord({
+        nodeCode: "itest-a",
+        rawRegisters: [1, 2, 3, 4, 5, 6, 7],
+        batteryVoltage: null,
+        measuredAt: null,
+      });
+
+      const nodes = (await store.listNodes()).filter((n) => n.code.startsWith("itest-"));
+      assert.deepEqual(nodes, [
+        { code: "itest-a", lastReceivedAt: record.receivedAt },
+        { code: "itest-b", lastReceivedAt: null },
+      ]);
+      assert.deepEqual(await store.getNode("itest-b"), { code: "itest-b", lastReceivedAt: null });
+      assert.equal(await store.getNode("itest-missing"), null);
+    }));
+
   test("returns null for an unregistered node and stores nothing", { skip }, () =>
     inRollback(async (store) => {
       const countBefore = await client.query("SELECT count(*)::int AS n FROM telemetry_records");

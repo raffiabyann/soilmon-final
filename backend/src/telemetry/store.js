@@ -22,6 +22,22 @@ const LIST_RECORDS = `
   ORDER BY received_at DESC, id DESC
   LIMIT $4`;
 
+// lastReceivedAt comes from the (node_id, received_at) index: one index lookup per node.
+const NODE_COLUMNS = `
+  n.code,
+  (SELECT max(t.received_at) FROM telemetry_records t WHERE t.node_id = n.id) AS last_received_at`;
+
+const LIST_NODES = `SELECT ${NODE_COLUMNS} FROM nodes n ORDER BY n.code`;
+
+const GET_NODE = `SELECT ${NODE_COLUMNS} FROM nodes n WHERE n.code = $1::text`;
+
+function toNode(row) {
+  return {
+    code: row.code,
+    lastReceivedAt: row.last_received_at ? row.last_received_at.toISOString() : null,
+  };
+}
+
 function toRecord(row, nodeCode) {
   return {
     id: String(row.id),
@@ -47,6 +63,18 @@ export function createTelemetryStore(db) {
   }
 
   return {
+    // Every registered node, ordered by code.
+    async listNodes() {
+      const { rows } = await query(LIST_NODES, []);
+      return rows.map(toNode);
+    },
+
+    // Returns the node, or null when nodeCode is not registered.
+    async getNode(nodeCode) {
+      const { rows } = await query(GET_NODE, [nodeCode]);
+      return rows.length > 0 ? toNode(rows[0]) : null;
+    },
+
     // Returns the stored record, or null when nodeCode is not a registered node.
     async insertRecord({ nodeCode, rawRegisters, batteryVoltage, measuredAt }) {
       const { rows } = await query(INSERT_RECORD, [
