@@ -31,3 +31,8 @@ Thumbs.db
 # Editor
 .vscode/
 .idea/
+
+# Local notes, not for GitHub
+uts/
+anti-slop/
+CLAUDE.md.backup
