@@ -1,27 +1,24 @@
-import { ActivityLog } from "../components/ActivityLog";
+import { Activity, BellRing, Gauge, MonitorCheck } from "lucide-react";
+import { ActiveAlertsCard } from "../components/ActiveAlertsCard";
 import { AlertCalendarCard } from "../components/AlertCalendarCard";
-import { GreetingCard } from "../components/GreetingCard";
-import { IrrigationCard } from "../components/IrrigationCard";
-import { LatestTelemetryCard } from "../components/LatestTelemetryCard";
+import { ActivityLog } from "../components/ActivityLog";
+import { MetricSummaryCards } from "../components/MetricSummaryCards";
 import { PageHeader } from "../components/PageHeader";
+import { SectionHeader } from "../components/SectionHeader";
+import { SystemStatusCard } from "../components/SystemStatusCard";
 import { TrendSection } from "../components/TrendSection";
-import { TELEMETRY_NODE_CODE } from "../lib/api";
 import { formatClockWib, formatLongDateWib } from "../lib/time";
 import { useNow } from "../lib/useNow";
-import { useTelemetryFeed } from "../lib/useTelemetryFeed";
-
-const REFRESH_MS = 10_000;
 
 /**
- * Dashboard (Figma: "Dashboard · Redesign (1440)"). Kartu kondisi kebun memakai mocks/;
- * LatestTelemetryCard membaca API backend.
+ * Dashboard: status sistem, ringkasan metrik, tren 24 jam, alert aktif, aktivitas terbaru.
+ * Status backend, node, dan data terakhir dari API; bagian berlabel "Data contoh" dari mocks/.
  */
 export function DashboardPage() {
-  const feed = useTelemetryFeed(TELEMETRY_NODE_CODE, 1, REFRESH_MS);
-  const now = useNow(REFRESH_MS);
+  const now = useNow(30_000);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-8">
       <PageHeader
         title="Dashboard"
         description="Kondisi kebun dan data yang masuk hari ini."
@@ -29,21 +26,30 @@ export function DashboardPage() {
         statCaption={`WIB · ${formatLongDateWib(now)}`}
       />
 
-      {/* Kolom kiri mengisi tinggi kalender: grafik irigasi yang memanjang menutup sisanya. */}
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_440px]">
-        <div className="flex flex-col gap-5">
-          <GreetingCard />
-          <LatestTelemetryCard feed={feed} now={now} />
-          <div className="flex flex-1 flex-col">
-            <IrrigationCard />
-          </div>
-        </div>
-        <AlertCalendarCard />
-      </div>
+      <section className="space-y-3">
+        <SectionHeader icon={MonitorCheck} title="Status sistem" />
+        <SystemStatusCard />
+      </section>
+
+      <section className="space-y-3">
+        <SectionHeader icon={Gauge} title="Kondisi terkini" mock />
+        <MetricSummaryCards />
+      </section>
 
       <TrendSection />
 
-      <ActivityLog />
+      <section className="space-y-3">
+        <SectionHeader icon={BellRing} title="Alert aktif" mock />
+        <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_400px]">
+          <ActiveAlertsCard />
+          <AlertCalendarCard />
+        </div>
+      </section>
+
+      <section className="space-y-3">
+        <SectionHeader icon={Activity} title="Aktivitas terbaru" mock />
+        <ActivityLog />
+      </section>
     </div>
   );
 }

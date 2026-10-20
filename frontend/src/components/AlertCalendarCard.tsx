@@ -58,7 +58,7 @@ function formatDay(key: string, style: "short" | "long"): string {
   }).format(keyToDate(key));
 }
 
-/** Kalender alert: titik per status di tiap tanggal (WIB), lalu daftar alert tanggal yang dipilih. */
+/** Kalender: titik status alert di tiap tanggal (WIB), lalu alert tanggal yang dipilih dan tautan ke Alerts. */
 export function AlertCalendarCard() {
   const todayKey = dateKeyWib(useNow(60_000));
   const [selected, setSelected] = useState(todayKey);
@@ -81,9 +81,9 @@ export function AlertCalendarCard() {
 
   return (
     <Card className="flex h-full flex-col gap-4">
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
         <CardLabel>
-          <CalendarDays className="size-3.5" /> Kalender alert
+          <CalendarDays className="size-3.5" /> Kalender
         </CardLabel>
         <div className="flex items-center gap-1">
           <MonthButton label="Bulan sebelumnya" onClick={() => setMonth(shiftMonth(month, -1))}>
@@ -117,7 +117,7 @@ export function AlertCalendarCard() {
               onClick={() => pick(key)}
               aria-pressed={isSelected}
               aria-label={`${formatDay(key, "long")}${alerts.length ? `, ${alerts.length} alert` : ""}`}
-              className={`mx-auto flex size-10 flex-col items-center justify-center gap-0.5 rounded-xl text-sm tabular-nums transition-colors pointer-coarse:size-11 ${
+              className={`mx-auto flex size-10 flex-col text-sm items-center justify-center gap-0.5 rounded-xl tabular-nums transition-colors pointer-coarse:size-11 ${
                 isSelected
                   ? "bg-brand font-semibold text-on-accent"
                   : `hover:bg-line-soft ${isToday ? "border border-brand font-semibold text-brand" : ""} ${
@@ -151,12 +151,14 @@ export function AlertCalendarCard() {
       <div className="border-t border-line pt-4">
         <div className="flex items-baseline justify-between gap-3">
           <p className="text-sm font-semibold text-ink">{formatDay(selected, "short")}</p>
-          <Link
-            to="/alerts"
-            className="text-xs font-semibold text-brand hover:underline pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center"
-          >
-            Semua alert
-          </Link>
+          {dayAlerts.length > 0 && (
+            <Link
+              to="/alerts"
+              className="text-xs font-semibold text-brand hover:underline pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center"
+            >
+              Lihat semua
+            </Link>
+          )}
         </div>
         {dayAlerts.length === 0 ? (
           <p className="mt-2 text-sm text-ink-muted">Tidak ada alert pada tanggal ini.</p>

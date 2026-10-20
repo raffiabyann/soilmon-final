@@ -2,9 +2,10 @@ import type { Alert, IrrigationEvent, IsoDateTime, NodeSummary } from "@soilmon/
 import { isOnline } from "@soilmon/shared";
 import { describeAlert } from "./alerts";
 import { getMetric } from "./metrics";
+import type { Packet } from "./packets";
 import { formatTimeWib } from "./time";
 
-export type ActivityKind = "alert" | "ack" | "resolved" | "irrigation" | "offline";
+export type ActivityKind = "telemetry" | "alert" | "ack" | "resolved" | "irrigation" | "offline";
 
 export interface ActivityEntry {
   /** Unik per baris, untuk key React. */
@@ -16,17 +17,36 @@ export interface ActivityEntry {
 }
 
 /**
- * Gabungkan alert, penyiraman, dan node offline jadi satu log berurutan (terbaru di atas).
+ * Gabungkan kiriman telemetry terakhir tiap node, alert, penyiraman, dan node offline jadi satu
+ * log berurutan (terbaru di atas). Nilai metrik tidak diulang; hanya metrik di luar batas disebut.
  * Tidak ada tabel log di database: semua dirangkai dari data yang sudah ada.
  */
 export function buildActivityLog(
   alerts: Alert[],
   irrigations: IrrigationEvent[],
   nodes: NodeSummary[],
+  packets: Packet[],
   now: Date,
   limit = 8,
 ): ActivityEntry[] {
   const entries: ActivityEntry[] = [];
+
+  const seen = new Set<string>();
+  for (const p of packets) {
+    if (seen.has(p.nodeCode)) continue;
+    seen.add(p.nodeCode);
+    const outside = p.outside.map((k) => getMetric(k)?.label ?? k);
+    entries.push({
+      id: `telemetry-${p.nodeCode}-${p.recordedAt}`,
+      at: p.recordedAt,
+      kind: "telemetry",
+      nodeCode: p.nodeCode,
+      text:
+        outside.length === 0
+          ? "Telemetry diterima, semua nilai normal"
+          : `Telemetry diterima, di luar batas: ${outside.join(", ")}`,
+    });
+  }
 
   for (const alert of alerts) {
     entries.push({

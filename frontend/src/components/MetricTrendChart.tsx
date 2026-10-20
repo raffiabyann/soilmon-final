@@ -266,27 +266,48 @@ interface SparkProps {
   metricKey: MetricKey;
   latest: number | undefined;
   icon: LucideIcon;
+  /** Grafik pendukung: nilai terakhir kecil di samping judul, tanpa angka besar dan badge status. */
+  compact?: boolean;
 }
 
 /** Kartu kecil (Figma: "Suhu tanah", "pH tanah"): angka, status, garis tren tanpa sumbu. */
-export function SparkMetricCard({ readings, metricKey, latest, icon: Icon }: SparkProps) {
+export function SparkMetricCard({
+  readings,
+  metricKey,
+  latest,
+  icon: Icon,
+  compact = false,
+}: SparkProps) {
   const metric = getMetric(metricKey);
   const { rows, max, min } = seriesFor(readings, metricKey);
   const badge = STATUS_BADGE[statusOf(metricKey, latest)];
 
   return (
     <Card className="flex h-full flex-col">
-      <div className="flex items-start justify-between gap-3">
-        <div>
+      {compact ? (
+        <div className="flex items-baseline justify-between gap-3">
           <CardLabel>
             <Icon className="size-3.5" />
             {metric?.label ?? metricKey}
           </CardLabel>
-          <BigValue metricKey={metricKey} latest={latest} size="lg" />
+          <p className="text-sm font-semibold text-ink tabular-nums">
+            <span className="sr-only">Nilai terakhir </span>
+            {latest !== undefined ? formatValue(latest, metricKey) : "-"}
+          </p>
         </div>
-        <Badge tone={badge.tone}>{badge.label}</Badge>
-      </div>
-      <div className="mt-3 h-[88px]">
+      ) : (
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <CardLabel>
+              <Icon className="size-3.5" />
+              {metric?.label ?? metricKey}
+            </CardLabel>
+            <BigValue metricKey={metricKey} latest={latest} size="lg" />
+          </div>
+          <Badge tone={badge.tone}>{badge.label}</Badge>
+        </div>
+      )}
+      <div className={`${compact ? "mt-2" : "mt-3"} min-h-[88px] flex-1`}>
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={rows} margin={{ top: 6, right: 6, bottom: 6, left: 6 }}>
             <YAxis hide domain={["dataMin - 0.5", "dataMax + 0.5"]} />

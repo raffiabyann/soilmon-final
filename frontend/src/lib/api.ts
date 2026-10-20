@@ -4,9 +4,6 @@
  * jadi klien ini tidak mengonversinya.
  */
 
-/** Node yang ditampilkan di baris "Data masuk" Dashboard. */
-export const TELEMETRY_NODE_CODE = "node-01";
-
 /** Satu record telemetry seperti dikirim backend. */
 export interface TelemetryRecord {
   id: string;
@@ -95,6 +92,30 @@ export async function fetchNodeTelemetry(
   );
   if (!isObject(body) || !Array.isArray(body.data) || !body.data.every(isTelemetryRecord)) {
     throw new ApiError(200, "invalid_response", "Respons API tidak sesuai format telemetry.");
+  }
+  return body.data;
+}
+
+/** Node terdaftar seperti dikirim backend. */
+export interface ApiNode {
+  code: string;
+  /** Waktu record terakhir node diterima server, null kalau belum pernah mengirim. */
+  lastReceivedAt: string | null;
+}
+
+function isApiNode(value: unknown): value is ApiNode {
+  return (
+    isObject(value) &&
+    typeof value.code === "string" &&
+    (value.lastReceivedAt === null || typeof value.lastReceivedAt === "string")
+  );
+}
+
+/** Semua node terdaftar, urut kode (GET /api/v1/nodes). */
+export async function fetchNodes(signal?: AbortSignal): Promise<ApiNode[]> {
+  const body = await getJson("/api/v1/nodes", signal);
+  if (!isObject(body) || !Array.isArray(body.data) || !body.data.every(isApiNode)) {
+    throw new ApiError(200, "invalid_response", "Respons API tidak sesuai format daftar node.");
   }
   return body.data;
 }

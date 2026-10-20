@@ -1,15 +1,18 @@
+import { isOnline } from "@soilmon/shared";
 import { ChartLine, FlaskConical, Thermometer } from "lucide-react";
 import { useState } from "react";
 import { HeroMetricChart, SparkMetricCard } from "./MetricTrendChart";
+import { SectionHeader } from "./SectionHeader";
 import { Segmented } from "./Segmented";
-import { DAY_MS } from "../lib/time";
+import { DAY_MS, formatShortDateWib, formatTimeWib } from "../lib/time";
 import { MOCK_NOW, mockIrrigationEvents, mockNodes } from "../mocks/data";
 import { mockReadings } from "../mocks/telemetry";
 
-/** Bagian "24 jam": grafik kelembaban besar + kartu suhu dan pH, untuk node yang dipilih. */
+/** Bagian "Tren lingkungan · 24 jam": grafik kelembaban besar + kartu suhu dan pH, untuk node yang dipilih. */
 export function TrendSection() {
   const [nodeCode, setNodeCode] = useState(mockNodes[0]?.code ?? "");
   const node = mockNodes.find((n) => n.code === nodeCode);
+  const online = node ? isOnline(node.lastSeenAt, MOCK_NOW) : true;
   const since = MOCK_NOW.getTime() - DAY_MS;
   const readings = mockReadings.filter(
     (r) => r.nodeCode === nodeCode && new Date(r.recordedAt).getTime() > since,
@@ -18,18 +21,24 @@ export function TrendSection() {
 
   return (
     <section className="space-y-3">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 className="label-mono flex items-center gap-2 text-ink">
-          <ChartLine className="size-4" /> 24 jam
-        </h2>
+      <SectionHeader icon={ChartLine} title="Tren lingkungan · 24 jam" mock>
         <Segmented
           ariaLabel="Pilih node"
           value={nodeCode}
           onChange={setNodeCode}
           options={mockNodes.map((n) => ({ value: n.code, label: `${n.code} · ${n.name}` }))}
         />
-      </div>
-      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_360px]">
+      </SectionHeader>
+      {node && !online && (
+        <p role="status" className="text-sm text-danger-ink">
+          {node.code} offline: kiriman terakhir{" "}
+          {node.lastSeenAt
+            ? `${formatShortDateWib(node.lastSeenAt)} ${formatTimeWib(node.lastSeenAt)}`
+            : "tidak diketahui"}
+          . Grafik berhenti di kiriman itu.
+        </p>
+      )}
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_320px]">
         <HeroMetricChart
           readings={readings}
           metricKey="soil_moisture"
@@ -44,12 +53,14 @@ export function TrendSection() {
             metricKey="soil_temperature"
             latest={node?.latest.soil_temperature}
             icon={Thermometer}
+            compact
           />
           <SparkMetricCard
             readings={readings}
             metricKey="soil_ph"
             latest={node?.latest.soil_ph}
             icon={FlaskConical}
+            compact
           />
         </div>
       </div>
