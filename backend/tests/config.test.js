@@ -1,6 +1,6 @@
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
-import { ConfigError, loadConfig } from "../src/config/env.js";
+import { ConfigError, JWT_SECRET_MIN_LENGTH, loadConfig } from "../src/config/env.js";
 
 describe("loadConfig", () => {
   test("applies defaults when variables are unset", () => {
@@ -8,6 +8,7 @@ describe("loadConfig", () => {
       port: 3000,
       nodeEnv: "development",
       databaseUrl: null,
+      jwtSecret: null,
     });
   });
 
@@ -54,5 +55,18 @@ describe("loadConfig", () => {
 
   test("rejects a DATABASE_URL with a non-PostgreSQL scheme", () => {
     assert.throws(() => loadConfig({ DATABASE_URL: "mysql://localhost/soilmon" }), ConfigError);
+  });
+
+  test("reads a JWT_SECRET of the minimum length", () => {
+    const secret = "s".repeat(JWT_SECRET_MIN_LENGTH);
+    assert.equal(loadConfig({ JWT_SECRET: secret }).jwtSecret, secret);
+  });
+
+  test("rejects a JWT_SECRET that is too short, without echoing it", () => {
+    const secret = "short-secret-value";
+    assert.throws(
+      () => loadConfig({ JWT_SECRET: secret }),
+      (err) => err instanceof ConfigError && !err.message.includes(secret),
+    );
   });
 });

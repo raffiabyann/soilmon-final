@@ -6,8 +6,10 @@ import {
   buildPayload,
   nextBatteryVoltage,
   nextRegisters,
+  parseApiKeys,
   parseArgs,
 } from "../src/simulator/payload.js";
+import { generateApiKey } from "../src/auth/apiKeys.js";
 import { validateTelemetryInput } from "../src/telemetry/validate.js";
 
 describe("simulator payload", () => {
@@ -93,5 +95,29 @@ describe("simulator arguments", () => {
 
   test("a flag without a value is an error", () => {
     assert.deepEqual(parseArgs(["--interval"]).errors, ["--interval needs a value"]);
+  });
+});
+
+describe("simulator API keys", () => {
+  test("reads one key per node from SIMULATOR_API_KEYS", () => {
+    const a = generateApiKey();
+    const b = generateApiKey();
+    const { keys, errors } = parseApiKeys(` node-01:${a} , node-02:${b} `);
+    assert.deepEqual(errors, []);
+    assert.deepEqual([...keys], [["node-01", a], ["node-02", b]]);
+  });
+
+  test("an unset variable gives no keys and no errors", () => {
+    assert.deepEqual(parseApiKeys(undefined), { keys: new Map(), errors: [] });
+  });
+
+  test("reports bad entries without printing the key", () => {
+    const { errors } = parseApiKeys("node-01:not-a-real-key,bad code:x,node-03");
+    assert.deepEqual(errors, [
+      "SIMULATOR_API_KEYS: the key for node-01 is not a valid API key",
+      'SIMULATOR_API_KEYS: "bad code" is not a valid node code',
+      "SIMULATOR_API_KEYS: the key for node-03 is not a valid API key",
+    ]);
+    assert.equal(errors.some((e) => e.includes("not-a-real-key")), false);
   });
 });

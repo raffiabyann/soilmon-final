@@ -94,7 +94,7 @@ describe("loadMigrations", () => {
     const loaded = await loadMigrations(REPO_MIGRATIONS);
     assert.deepEqual(
       loaded.map((m) => m.name),
-      ["001_create_telemetry.sql"],
+      ["001_create_telemetry.sql", "002_create_auth.sql", "003_create_node_config.sql"],
     );
   });
 });

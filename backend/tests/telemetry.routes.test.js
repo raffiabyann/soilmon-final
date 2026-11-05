@@ -2,6 +2,8 @@ import { after, before, beforeEach, describe, test } from "node:test";
 import assert from "node:assert/strict";
 import { createApp } from "../src/app.js";
 import { ApiError } from "../src/middleware/errors.js";
+import { signAccessToken } from "../src/auth/tokens.js";
+import { generateApiKey, hashApiKey } from "../src/auth/apiKeys.js";
 
 // Requests go through the real Express app; only the store is replaced.
 async function listen(app) {
@@ -23,13 +25,30 @@ const VALID = { nodeCode: "node-01", rawRegisters: [1, 2, 3, 4, 5, 6, 7], batter
 
 const NODE = { code: "node-01", lastReceivedAt: "2026-10-20T05:12:30.000Z" };
 
+// Authentication itself is tested in auth.routes.test.js. Here every request carries a valid
+// credential, so these tests check the same behaviour as before authentication existed.
+const SECRET = "test-secret-that-is-at-least-32-chars";
+const ADMIN = { id: "3", role: "admin" };
+const BEARER = `Bearer ${signAccessToken(ADMIN, SECRET)}`;
+const API_KEY = generateApiKey();
+
+const authStore = {
+  async findActiveDevice(apiKeyHash) {
+    return apiKeyHash === hashApiKey(API_KEY) ? { nodeId: "1", nodeCode: "node-01" } : null;
+  },
+};
+
+function get(baseUrl, path) {
+  return fetch(`${baseUrl}${path}`, { headers: { authorization: BEARER } });
+}
+
 function freshState() {
   return {
     calls: [],
     insertResult: RECORD,
-    listResult: [RECORD],
+    listResult: { access: "granted", records: [RECORD] },
     nodesResult: [NODE],
-    nodeResult: NODE,
+    nodeResult: { access: "granted", node: NODE },
     error: null,
   };
 }
@@ -43,28 +62,28 @@ function fakeStore() {
       if (this.error) throw this.error;
       return this.insertResult;
     },
-    async listRecords(nodeCode, options) {
-      this.calls.push(["listRecords", nodeCode, options]);
+    async listRecords(nodeCode, options, user) {
+      this.calls.push(["listRecords", nodeCode, options, user]);
       if (this.error) throw this.error;
       return this.listResult;
     },
-    async listNodes() {
-      this.calls.push(["listNodes"]);
+    async listNodes(user) {
+      this.calls.push(["listNodes", user]);
       if (this.error) throw this.error;
       return this.nodesResult;
     },
-    async getNode(nodeCode) {
-      this.calls.push(["getNode", nodeCode]);
+    async getNode(nodeCode, user) {
+      this.calls.push(["getNode", nodeCode, user]);
       if (this.error) throw this.error;
       return this.nodeResult;
     },
   };
 }
 
-function post(baseUrl, body, headers = { "content-type": "application/json" }) {
+function post(baseUrl, body, headers = {}) {
   return fetch(`${baseUrl}/api/v1/telemetry`, {
     method: "POST",
-    headers,
+    headers: { "content-type": "application/json", "x-api-key": API_KEY, ...headers },
     body: typeof body === "string" ? body : JSON.stringify(body),
   });
 }
@@ -79,7 +98,7 @@ describe("telemetry routes", () => {
     originalConsoleError = console.error;
     console.error = () => {};
     store = fakeStore();
-    ({ server, baseUrl } = await listen(createApp({ telemetryStore: store })));
+    ({ server, baseUrl } = await listen(createApp({ telemetryStore: store, authStore, jwtSecret: SECRET })));
   });
 
   beforeEach(() => {
@@ -150,15 +169,16 @@ describe("telemetry routes", () => {
   });
 
   test("GET returns the node's history with the default limit", async () => {
-    const res = await fetch(`${baseUrl}/api/v1/nodes/node-01/telemetry`);
+    const res = await get(baseUrl, "/api/v1/nodes/node-01/telemetry");
     assert.equal(res.status, 200);
     assert.deepEqual(await res.json(), { data: [RECORD] });
-    assert.deepEqual(store.calls, [["listRecords", "node-01", { limit: 50, from: null, to: null }]]);
+    assert.deepEqual(store.calls, [["listRecords", "node-01", { limit: 50, from: null, to: null }, ADMIN]]);
   });
 
   test("GET passes limit and time range to the store", async () => {
-    const res = await fetch(
-      `${baseUrl}/api/v1/nodes/node-01/telemetry?limit=500&from=2026-10-01T00:00:00Z&to=2026-10-02T00:00:00Z`,
+    const res = await get(
+      baseUrl,
+      "/api/v1/nodes/node-01/telemetry?limit=500&from=2026-10-01T00:00:00Z&to=2026-10-02T00:00:00Z",
     );
     assert.equal(res.status, 200);
     const [, , options] = store.calls[0];
@@ -168,7 +188,7 @@ describe("telemetry routes", () => {
   });
 
   test("GET rejects a limit above the maximum with 422", async () => {
-    const res = await fetch(`${baseUrl}/api/v1/nodes/node-01/telemetry?limit=501`);
+    const res = await get(baseUrl, "/api/v1/nodes/node-01/telemetry?limit=501");
     assert.equal(res.status, 422);
     const { error } = await res.json();
     assert.equal(error.code, "validation_failed");
@@ -177,41 +197,41 @@ describe("telemetry routes", () => {
   });
 
   test("GET for an unregistered node is a 404", async () => {
-    store.listResult = null;
-    const res = await fetch(`${baseUrl}/api/v1/nodes/ghost/telemetry`);
+    store.listResult = { access: "missing" };
+    const res = await get(baseUrl, "/api/v1/nodes/ghost/telemetry");
     assert.equal(res.status, 404);
     assert.equal((await res.json()).error.code, "not_found");
   });
 
   test("GET with a node code that cannot exist is a 404 without a database call", async () => {
-    const res = await fetch(`${baseUrl}/api/v1/nodes/bad%20code/telemetry`);
+    const res = await get(baseUrl, "/api/v1/nodes/bad%20code/telemetry");
     assert.equal(res.status, 404);
     assert.equal(store.calls.length, 0);
   });
 
   test("GET /nodes lists the registered nodes", async () => {
-    const res = await fetch(`${baseUrl}/api/v1/nodes`);
+    const res = await get(baseUrl, "/api/v1/nodes");
     assert.equal(res.status, 200);
     assert.deepEqual(await res.json(), { data: [NODE] });
-    assert.deepEqual(store.calls, [["listNodes"]]);
+    assert.deepEqual(store.calls, [["listNodes", ADMIN]]);
   });
 
   test("GET /nodes/{node} returns one node", async () => {
-    const res = await fetch(`${baseUrl}/api/v1/nodes/node-01`);
+    const res = await get(baseUrl, "/api/v1/nodes/node-01");
     assert.equal(res.status, 200);
     assert.deepEqual(await res.json(), { data: NODE });
-    assert.deepEqual(store.calls, [["getNode", "node-01"]]);
+    assert.deepEqual(store.calls, [["getNode", "node-01", ADMIN]]);
   });
 
   test("GET /nodes/{node} for an unregistered node is a 404", async () => {
-    store.nodeResult = null;
-    const res = await fetch(`${baseUrl}/api/v1/nodes/node-99`);
+    store.nodeResult = { access: "missing" };
+    const res = await get(baseUrl, "/api/v1/nodes/node-99");
     assert.equal(res.status, 404);
     assert.equal((await res.json()).error.code, "not_found");
   });
 
   test("GET /nodes/{node} with a code that cannot exist is a 404 without a database call", async () => {
-    const res = await fetch(`${baseUrl}/api/v1/nodes/bad%20code`);
+    const res = await get(baseUrl, "/api/v1/nodes/bad%20code");
     assert.equal(res.status, 404);
     assert.equal(store.calls.length, 0);
   });
@@ -232,8 +252,9 @@ describe("telemetry routes without a database", () => {
   let server;
   let baseUrl;
 
+  // JWT_SECRET is set, so a user token can be verified without the database; a device key cannot.
   before(async () => {
-    ({ server, baseUrl } = await listen(createApp()));
+    ({ server, baseUrl } = await listen(createApp({ jwtSecret: SECRET })));
   });
 
   after(() => new Promise((resolve) => server.close(resolve)));
@@ -247,17 +268,25 @@ describe("telemetry routes without a database", () => {
   });
 
   test("GET responds 503 when no store is configured", async () => {
-    const res = await fetch(`${baseUrl}/api/v1/nodes/node-01/telemetry`);
+    const res = await get(baseUrl, "/api/v1/nodes/node-01/telemetry");
     assert.equal(res.status, 503);
   });
 
   test("GET /nodes responds 503 when no store is configured", async () => {
-    const res = await fetch(`${baseUrl}/api/v1/nodes`);
+    const res = await get(baseUrl, "/api/v1/nodes");
     assert.equal(res.status, 503);
   });
 
-  test("validation still runs first: an invalid POST is a 422", async () => {
+  // Authentication runs before validation, so an unauthenticated caller cannot probe the contract.
+  test("authentication runs first: a POST without an API key is a 401, even without a database", async () => {
+    const res = await post(baseUrl, {}, { "x-api-key": "" });
+    assert.equal(res.status, 401);
+    assert.equal((await res.json()).error.code, "unauthenticated");
+  });
+
+  test("an invalid POST with an API key is a 503: the key cannot be checked without a database", async () => {
     const res = await post(baseUrl, {});
-    assert.equal(res.status, 422);
+    assert.equal(res.status, 503);
+    assert.equal((await res.json()).error.code, "database_unavailable");
   });
 });

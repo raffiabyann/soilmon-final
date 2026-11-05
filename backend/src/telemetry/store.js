@@ -1,7 +1,12 @@
-import { isDatabaseUnavailable } from "../db/errors.js";
-import { ApiError } from "../middleware/errors.js";
+import { ACCESS, canReadNode, findNodeAccess } from "../auth/access.js";
+import { createQuery } from "../db/query.js";
 
 // Every value is passed as a parameter; the SQL text never contains request data.
+//
+// Reads take the caller as user = { id, role } and filter by ownership inside SQL (canReadNode).
+// Single-node reads first resolve access (404 / 403, see auth/access.js) and then run a data
+// query that repeats the ownership condition, so it returns nothing to a caller without access
+// even if the first check were skipped.
 
 // Inserts only when the node is registered: an unknown nodeCode inserts nothing.
 const INSERT_RECORD = `
@@ -11,12 +16,13 @@ const INSERT_RECORD = `
   WHERE code = $1::text
   RETURNING id, received_at, measured_at, raw_registers, battery_voltage`;
 
-const FIND_NODE = "SELECT id FROM nodes WHERE code = $1::text";
-
+// The table is named in full: inside canReadNode's subquery an unqualified node_id would
+// resolve to user_nodes.node_id.
 const LIST_RECORDS = `
   SELECT id, received_at, measured_at, raw_registers, battery_voltage
   FROM telemetry_records
   WHERE node_id = $1
+    AND ${canReadNode({ nodeId: "telemetry_records.node_id", role: "$5", userId: "$6" })}
     AND ($2::timestamptz IS NULL OR received_at >= $2::timestamptz)
     AND ($3::timestamptz IS NULL OR received_at < $3::timestamptz)
   ORDER BY received_at DESC, id DESC
@@ -27,9 +33,17 @@ const NODE_COLUMNS = `
   n.code,
   (SELECT max(t.received_at) FROM telemetry_records t WHERE t.node_id = n.id) AS last_received_at`;
 
-const LIST_NODES = `SELECT ${NODE_COLUMNS} FROM nodes n ORDER BY n.code`;
+const LIST_NODES = `
+  SELECT ${NODE_COLUMNS}
+  FROM nodes n
+  WHERE ${canReadNode({ nodeId: "n.id", role: "$1", userId: "$2" })}
+  ORDER BY n.code`;
 
-const GET_NODE = `SELECT ${NODE_COLUMNS} FROM nodes n WHERE n.code = $1::text`;
+const GET_NODE = `
+  SELECT ${NODE_COLUMNS}
+  FROM nodes n
+  WHERE n.id = $1
+    AND ${canReadNode({ nodeId: "n.id", role: "$2", userId: "$3" })}`;
 
 function toNode(row) {
   return {
@@ -51,28 +65,23 @@ function toRecord(row, nodeCode) {
 
 // db is anything with pg's query(text, params) method: a Pool, a Client or a test double.
 export function createTelemetryStore(db) {
-  async function query(text, params) {
-    try {
-      return await db.query(text, params);
-    } catch (err) {
-      if (isDatabaseUnavailable(err)) {
-        throw new ApiError(503, "database_unavailable", "The database is not available.");
-      }
-      throw err;
-    }
-  }
+  const query = createQuery(db);
 
   return {
-    // Every registered node, ordered by code.
-    async listNodes() {
-      const { rows } = await query(LIST_NODES, []);
+    // The nodes the caller may read, ordered by code: every node for an admin.
+    async listNodes(user) {
+      const { rows } = await query(LIST_NODES, [user.role, user.id]);
       return rows.map(toNode);
     },
 
-    // Returns the node, or null when nodeCode is not registered.
-    async getNode(nodeCode) {
-      const { rows } = await query(GET_NODE, [nodeCode]);
-      return rows.length > 0 ? toNode(rows[0]) : null;
+    // Returns { access, node }. node is set only when access is granted.
+    async getNode(nodeCode, user) {
+      const { access, nodeId } = await findNodeAccess(query, nodeCode, user);
+      if (access !== ACCESS.GRANTED) return { access };
+      const { rows } = await query(GET_NODE, [nodeId, user.role, user.id]);
+      // No row: the assignment was removed between the two queries.
+      if (rows.length === 0) return { access: ACCESS.DENIED };
+      return { access, node: toNode(rows[0]) };
     },
 
     // Returns the stored record, or null when nodeCode is not a registered node.
@@ -86,12 +95,12 @@ export function createTelemetryStore(db) {
       return rows.length > 0 ? toRecord(rows[0], nodeCode) : null;
     },
 
-    // Returns the node's records, newest first, or null when the node is not registered.
-    async listRecords(nodeCode, { limit, from, to }) {
-      const node = await query(FIND_NODE, [nodeCode]);
-      if (node.rows.length === 0) return null;
-      const { rows } = await query(LIST_RECORDS, [node.rows[0].id, from, to, limit]);
-      return rows.map((row) => toRecord(row, nodeCode));
+    // Returns { access, records }: the node's records, newest first, when access is granted.
+    async listRecords(nodeCode, { limit, from, to }, user) {
+      const { access, nodeId } = await findNodeAccess(query, nodeCode, user);
+      if (access !== ACCESS.GRANTED) return { access };
+      const { rows } = await query(LIST_RECORDS, [nodeId, from, to, limit, user.role, user.id]);
+      return { access, records: rows.map((row) => toRecord(row, nodeCode)) };
     },
   };
 }

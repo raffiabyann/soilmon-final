@@ -2,59 +2,16 @@
 // Every test runs inside a transaction that is rolled back, so no data is kept.
 import { after, before, describe, test } from "node:test";
 import assert from "node:assert/strict";
-import { existsSync, readFileSync } from "node:fs";
-import { parseEnv } from "node:util";
 import { loadConfig } from "../src/config/env.js";
 import { closePool, getPool } from "../src/db/pool.js";
 import { createTelemetryStore } from "../src/telemetry/store.js";
+import { refusalReason } from "./helpers/testDatabase.js";
 
 const url = process.env.TEST_DATABASE_URL;
 // Skipping each test (not the suite) makes the test runner count them as skipped.
 const skip = url ? false : "TEST_DATABASE_URL is not set";
-
-// Identifies the database a URL points at, without its credentials.
-function target(value) {
-  try {
-    const parsed = new URL(value);
-    return {
-      host: parsed.hostname.toLowerCase(),
-      port: parsed.port || "5432",
-      database: decodeURIComponent(parsed.pathname.slice(1)),
-    };
-  } catch {
-    return null;
-  }
-}
-
-// npm test does not load .env, so the application's DATABASE_URL is also read from the file.
-function applicationDatabaseUrls() {
-  const urls = [process.env.DATABASE_URL];
-  const envFile = new URL("../.env", import.meta.url);
-  if (existsSync(envFile)) urls.push(parseEnv(readFileSync(envFile, "utf8")).DATABASE_URL);
-  return urls.filter(Boolean);
-}
-
-// Returns why the tests must not run against TEST_DATABASE_URL, or null when the target is safe.
-// Messages name the database only, never the user, password or URL.
-function refusalReason() {
-  const testDb = target(url);
-  if (!testDb) return "TEST_DATABASE_URL is not a valid URL.";
-  if (!testDb.database.endsWith("_test")) {
-    return `TEST_DATABASE_URL targets database "${testDb.database}"; its name must end with "_test".`;
-  }
-  for (const appUrl of applicationDatabaseUrls()) {
-    const app = target(appUrl);
-    if (
-      app &&
-      app.host === testDb.host &&
-      app.port === testDb.port &&
-      app.database === testDb.database
-    ) {
-      return `TEST_DATABASE_URL targets the same database as DATABASE_URL ("${testDb.database}").`;
-    }
-  }
-  return null;
-}
+// Ownership is tested in auth.integration.test.js; an admin reads every node.
+const ADMIN = { id: "0", role: "admin" };
 
 describe("telemetry store against PostgreSQL", () => {
   let client;
@@ -62,7 +19,7 @@ describe("telemetry store against PostgreSQL", () => {
   before(async () => {
     if (skip) return;
     // Checked before any connection is opened.
-    const reason = refusalReason();
+    const reason = refusalReason(url);
     if (reason) throw new Error(`Refusing to run integration tests: ${reason}`);
     client = await getPool(loadConfig({ DATABASE_URL: url })).connect();
   });
@@ -101,7 +58,7 @@ describe("telemetry store against PostgreSQL", () => {
       assert.equal(first.measuredAt, "2026-10-20T05:12:00.000Z");
       assert.equal(second.batteryVoltage, null);
 
-      const records = await store.listRecords("itest-node", { limit: 10, from: null, to: null });
+      const { records } = await store.listRecords("itest-node", { limit: 10, from: null, to: null }, ADMIN);
       assert.deepEqual(
         records.map((r) => r.id),
         [second.id, first.id],
@@ -118,13 +75,13 @@ describe("telemetry store against PostgreSQL", () => {
         measuredAt: null,
       });
 
-      const nodes = (await store.listNodes()).filter((n) => n.code.startsWith("itest-"));
+      const nodes = (await store.listNodes(ADMIN)).filter((n) => n.code.startsWith("itest-"));
       assert.deepEqual(nodes, [
         { code: "itest-a", lastReceivedAt: record.receivedAt },
         { code: "itest-b", lastReceivedAt: null },
       ]);
-      assert.deepEqual(await store.getNode("itest-b"), { code: "itest-b", lastReceivedAt: null });
-      assert.equal(await store.getNode("itest-missing"), null);
+      assert.deepEqual((await store.getNode("itest-b", ADMIN)).node, { code: "itest-b", lastReceivedAt: null });
+      assert.deepEqual(await store.getNode("itest-missing", ADMIN), { access: "missing" });
     }));
 
   test("returns null for an unregistered node and stores nothing", { skip }, () =>

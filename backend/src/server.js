@@ -2,6 +2,8 @@ import { createApp } from "./app.js";
 import { ConfigError, loadConfig } from "./config/env.js";
 import { closePool, getPool } from "./db/pool.js";
 import { createTelemetryStore } from "./telemetry/store.js";
+import { createAuthStore } from "./auth/store.js";
+import { createNodeConfigStore } from "./nodeConfig/store.js";
 
 let config;
 try {
@@ -14,14 +16,22 @@ try {
   throw err;
 }
 
-let telemetryStore = null;
+let stores = {};
 if (config.databaseUrl) {
-  telemetryStore = createTelemetryStore(getPool(config));
+  const pool = getPool(config);
+  stores = {
+    telemetryStore: createTelemetryStore(pool),
+    authStore: createAuthStore(pool),
+    nodeConfigStore: createNodeConfigStore(pool),
+  };
 } else {
-  console.warn("DATABASE_URL is not set; telemetry endpoints will respond 503.");
+  console.warn("DATABASE_URL is not set; endpoints that need the database will respond 503.");
+}
+if (!config.jwtSecret) {
+  console.warn("JWT_SECRET is not set; login and endpoints for signed-in users will respond 503.");
 }
 
-const server = createApp({ telemetryStore }).listen(config.port, () => {
+const server = createApp({ ...stores, jwtSecret: config.jwtSecret }).listen(config.port, () => {
   console.log(`SoilMon backend listening on port ${config.port} (${config.nodeEnv})`);
 });
 

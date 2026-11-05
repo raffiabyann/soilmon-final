@@ -1,8 +1,9 @@
 import { LogoStrip } from "./LogoStrip";
 import { ThemeToggle } from "./ThemeToggle";
+import { UserMenu } from "./UserMenu";
 
 /**
- * Baris paling atas: logo mitra di kiri, kredit pembuat di tengah, tombol tema di kanan.
+ * Baris paling atas: logo mitra di kiri, kredit pembuat di tengah, pengguna dan tombol tema di kanan.
  * Di bawah xl kredit turun ke baris sendiri supaya tidak berdesakan.
  */
 export function TopBar() {
@@ -15,7 +16,8 @@ export function TopBar() {
           Universitas Multimedia Nusantara &amp; PT. IDE Kreatif Teknologi
         </span>
       </p>
-      <div className="flex items-center xl:justify-self-end">
+      <div className="flex min-w-0 flex-wrap items-center gap-3 xl:justify-self-end">
+        <UserMenu />
         <ThemeToggle />
       </div>
     </header>

@@ -40,10 +40,23 @@ function parseDatabaseUrl(value) {
   return value;
 }
 
+// HS256 needs a key at least as long as its 256-bit output to keep its strength (RFC 7518 §3.2).
+export const JWT_SECRET_MIN_LENGTH = 32;
+
+function parseJwtSecret(value) {
+  if (value === undefined || value === "") return null;
+  if (value.length < JWT_SECRET_MIN_LENGTH) {
+    // The value is not echoed back because it is a secret.
+    throw new ConfigError(`JWT_SECRET must be at least ${JWT_SECRET_MIN_LENGTH} characters long.`);
+  }
+  return value;
+}
+
 export function loadConfig(env = process.env) {
   return Object.freeze({
     port: parsePort(env.PORT),
     nodeEnv: parseNodeEnv(env.NODE_ENV),
     databaseUrl: parseDatabaseUrl(env.DATABASE_URL),
+    jwtSecret: parseJwtSecret(env.JWT_SECRET),
   });
 }

@@ -1,7 +1,12 @@
+import { endSession, getAccessToken, isAuthRole, saveSession, type AuthRole } from "./auth";
+
 /**
  * Klien kecil untuk REST API backend (05 §6–7). Semua permintaan lewat proxy Vite: /api → backend.
  * Nilai register adalah data mentah: arti, signedness, skala, dan satuannya belum diverifikasi,
  * jadi klien ini tidak mengonversinya.
+ *
+ * Setiap permintaan (kecuali login) membawa Authorization: Bearer. Kalau backend menjawab 401,
+ * sesi dihapus di sini dan RequireAuth mengarahkan pengguna ke halaman login.
  */
 
 /** Satu record telemetry seperti dikirim backend. */
@@ -17,16 +22,24 @@ export interface TelemetryRecord {
   batteryVoltage: number | null;
 }
 
+/** Satu field yang ditolak backend (error.details). */
+export interface ApiErrorDetail {
+  field: string;
+  message: string;
+}
+
 /** Kegagalan permintaan API. status 0 berarti tidak ada respons HTTP sama sekali. */
 export class ApiError extends Error {
   readonly status: number;
   readonly code: string;
+  readonly details: ApiErrorDetail[];
 
-  constructor(status: number, code: string, message: string) {
+  constructor(status: number, code: string, message: string, details: ApiErrorDetail[] = []) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.code = code;
+    this.details = details;
   }
 }
 
@@ -34,11 +47,18 @@ function isObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
 
-/** Bentuk error backend: { error: { code, message } }. */
-function readApiError(body: unknown): { code: string; message: string } | null {
+function isApiErrorDetail(value: unknown): value is ApiErrorDetail {
+  return isObject(value) && typeof value.field === "string" && typeof value.message === "string";
+}
+
+/** Bentuk error backend: { error: { code, message, details? } }. */
+function readApiError(
+  body: unknown,
+): { code: string; message: string; details: ApiErrorDetail[] } | null {
   if (!isObject(body) || !isObject(body.error)) return null;
-  const { code, message } = body.error;
-  return typeof code === "string" && typeof message === "string" ? { code, message } : null;
+  const { code, message, details } = body.error;
+  if (typeof code !== "string" || typeof message !== "string") return null;
+  return { code, message, details: Array.isArray(details) ? details.filter(isApiErrorDetail) : [] };
 }
 
 function isTelemetryRecord(value: unknown): value is TelemetryRecord {
@@ -54,10 +74,31 @@ function isTelemetryRecord(value: unknown): value is TelemetryRecord {
   );
 }
 
-async function getJson(path: string, signal?: AbortSignal): Promise<unknown> {
+interface RequestOptions {
+  body?: unknown;
+  signal?: AbortSignal;
+  /** false hanya untuk login: belum ada token, dan 401-nya berarti "email atau password salah". */
+  authenticated?: boolean;
+}
+
+async function request(
+  method: string,
+  path: string,
+  { body: payload, signal, authenticated = true }: RequestOptions = {},
+): Promise<unknown> {
+  const token = authenticated ? getAccessToken() : null;
+  const headers: Record<string, string> = { accept: "application/json" };
+  if (token) headers.authorization = `Bearer ${token}`;
+  if (payload !== undefined) headers["content-type"] = "application/json";
+
   let response: Response;
   try {
-    response = await fetch(path, { headers: { accept: "application/json" }, signal });
+    response = await fetch(path, {
+      method,
+      headers,
+      body: payload === undefined ? undefined : JSON.stringify(payload),
+      signal,
+    });
   } catch (err) {
     if (signal?.aborted) throw err;
     throw new ApiError(0, "network_error", "Tidak ada respons dari server.");
@@ -72,8 +113,15 @@ async function getJson(path: string, signal?: AbortSignal): Promise<unknown> {
   }
 
   if (!response.ok) {
+    // Hanya jika token yang ditolak masih token yang sedang dipakai: jawaban 401 yang terlambat
+    // untuk token lama tidak boleh mengeluarkan pengguna yang baru saja masuk lagi.
+    if (response.status === 401 && token !== null && token === getAccessToken()) {
+      endSession("expired");
+    }
     const apiError = readApiError(body);
-    if (apiError) throw new ApiError(response.status, apiError.code, apiError.message);
+    if (apiError) {
+      throw new ApiError(response.status, apiError.code, apiError.message, apiError.details);
+    }
     const code = response.status >= 500 ? "backend_unreachable" : "http_error";
     throw new ApiError(response.status, code, `Permintaan gagal (HTTP ${response.status}).`);
   }
@@ -86,9 +134,10 @@ export async function fetchNodeTelemetry(
   options: { limit?: number; signal?: AbortSignal } = {},
 ): Promise<TelemetryRecord[]> {
   const query = options.limit === undefined ? "" : `?limit=${options.limit}`;
-  const body = await getJson(
+  const body = await request(
+    "GET",
     `/api/v1/nodes/${encodeURIComponent(nodeCode)}/telemetry${query}`,
-    options.signal,
+    { signal: options.signal },
   );
   if (!isObject(body) || !Array.isArray(body.data) || !body.data.every(isTelemetryRecord)) {
     throw new ApiError(200, "invalid_response", "Respons API tidak sesuai format telemetry.");
@@ -113,11 +162,91 @@ function isApiNode(value: unknown): value is ApiNode {
 
 /** Semua node terdaftar, urut kode (GET /api/v1/nodes). */
 export async function fetchNodes(signal?: AbortSignal): Promise<ApiNode[]> {
-  const body = await getJson("/api/v1/nodes", signal);
+  const body = await request("GET", "/api/v1/nodes", { signal });
   if (!isObject(body) || !Array.isArray(body.data) || !body.data.every(isApiNode)) {
     throw new ApiError(200, "invalid_response", "Respons API tidak sesuai format daftar node.");
   }
   return body.data;
+}
+
+/** Pengguna yang sedang masuk, seperti dikirim POST /api/v1/auth/login. */
+export interface AuthUser {
+  id: string;
+  email: string;
+  role: AuthRole;
+}
+
+/** Masuk dengan email dan password; kalau berhasil, sesi disimpan dan dikembalikan. */
+export async function login(email: string, password: string): Promise<AuthUser> {
+  const body = await request("POST", "/api/v1/auth/login", {
+    body: { email, password },
+    authenticated: false,
+  });
+  const data = isObject(body) ? body.data : null;
+  const user = isObject(data) ? data.user : null;
+  if (
+    !isObject(data) ||
+    typeof data.accessToken !== "string" ||
+    !isObject(user) ||
+    typeof user.id !== "string" ||
+    typeof user.email !== "string" ||
+    !isAuthRole(user.role)
+  ) {
+    throw new ApiError(200, "invalid_response", "Respons API tidak sesuai format login.");
+  }
+  saveSession({ accessToken: data.accessToken, email: user.email, role: user.role });
+  return { id: user.id, email: user.email, role: user.role };
+}
+
+/** Konfigurasi satu node (GET/PATCH /api/v1/nodes/{nodeCode}/config). null = belum diatur. */
+export interface NodeConfig {
+  nodeCode: string;
+  /** Satuannya belum ditetapkan (arti register belum diverifikasi). */
+  moistureThreshold: number | null;
+  pumpDurationSec: number | null;
+  updatedBy: string | null;
+  updatedAt: string | null;
+}
+
+/** Field yang dikirim ke PATCH; field yang tidak ada tidak diubah, null mengosongkan nilainya. */
+export type NodeConfigChanges = Partial<Pick<NodeConfig, "moistureThreshold" | "pumpDurationSec">>;
+
+function isNodeConfig(value: unknown): value is NodeConfig {
+  return (
+    isObject(value) &&
+    typeof value.nodeCode === "string" &&
+    (value.moistureThreshold === null || typeof value.moistureThreshold === "number") &&
+    (value.pumpDurationSec === null || typeof value.pumpDurationSec === "number") &&
+    (value.updatedBy === null || typeof value.updatedBy === "string") &&
+    (value.updatedAt === null || typeof value.updatedAt === "string")
+  );
+}
+
+function readNodeConfig(body: unknown): NodeConfig {
+  if (!isObject(body) || !isNodeConfig(body.data)) {
+    throw new ApiError(200, "invalid_response", "Respons API tidak sesuai format konfigurasi.");
+  }
+  return body.data;
+}
+
+/** Konfigurasi node. Admin dan viewer pemilik node boleh membaca. */
+export async function fetchNodeConfig(nodeCode: string, signal?: AbortSignal): Promise<NodeConfig> {
+  const path = `/api/v1/nodes/${encodeURIComponent(nodeCode)}/config`;
+  return readNodeConfig(await request("GET", path, { signal }));
+}
+
+/** Ubah konfigurasi node. Hanya admin yang diterima backend; viewer mendapat 403. */
+export async function patchNodeConfig(
+  nodeCode: string,
+  changes: NodeConfigChanges,
+): Promise<NodeConfig> {
+  const path = `/api/v1/nodes/${encodeURIComponent(nodeCode)}/config`;
+  return readNodeConfig(await request("PATCH", path, { body: changes }));
+}
+
+/** Rincian per field dari error.details, satu string per field (kosong kalau tidak ada). */
+export function describeErrorDetails(error: ApiError): string[] {
+  return error.details.map((d) => `${d.field}: ${d.message}`);
 }
 
 /** Penjelasan error untuk pengguna, dalam bahasa Indonesia. Tidak pernah memuat detail server. */
@@ -130,6 +259,8 @@ export function describeApiError(error: ApiError, nodeCode: string): string {
       return "Backend berjalan, tetapi database PostgreSQL tidak tersedia.";
     case "not_found":
       return `Node ${nodeCode} belum terdaftar di database.`;
+    case "auth_unavailable":
+      return "Backend belum dikonfigurasi untuk login. Isi JWT_SECRET di backend/.env, lalu jalankan ulang backend.";
     case "validation_failed":
       return "Parameter permintaan ditolak backend.";
     case "invalid_response":

@@ -2,6 +2,7 @@
 // contract as the gateway: seven raw uint16 registers and the node's battery voltage.
 
 import { RAW_REGISTER_MAX, isValidNodeCode } from "../telemetry/validate.js";
+import { isWellFormedApiKey } from "../auth/apiKeys.js";
 
 // Starting point: the registers of the first manually sent record. Only the shape is reused;
 // what each register means is not verified, so the walk below treats them all alike.
@@ -92,4 +93,22 @@ export function parseArgs(argv) {
 
   if (options.nodes.length === 0) options.nodes = [...DEFAULTS.nodes];
   return { options, errors };
+}
+
+// Parses SIMULATOR_API_KEYS, "node-01:KEY,node-02:KEY" as printed by npm run seed, into a Map
+// from node code to key. Each key belongs to one node, so each simulated node needs its own.
+// Returns { keys, errors }; errors never contain a key.
+export function parseApiKeys(text) {
+  const keys = new Map();
+  const errors = [];
+  for (const entry of (text ?? "").split(",")) {
+    if (entry.trim() === "") continue;
+    const separator = entry.indexOf(":");
+    const code = separator === -1 ? entry.trim() : entry.slice(0, separator).trim();
+    const key = separator === -1 ? "" : entry.slice(separator + 1).trim();
+    if (!isValidNodeCode(code)) errors.push(`SIMULATOR_API_KEYS: "${code}" is not a valid node code`);
+    else if (!isWellFormedApiKey(key)) errors.push(`SIMULATOR_API_KEYS: the key for ${code} is not a valid API key`);
+    else keys.set(code, key);
+  }
+  return { keys, errors };
 }

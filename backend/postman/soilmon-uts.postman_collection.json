@@ -2,15 +2,297 @@
   "info": {
     "name": "SoilMon API v1 (UTS)",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "description": "Demo backend SoilMon. Jalankan backend dulu (npm run dev di folder backend). Request yang mengirim data menulis ke database yang dipakai backend."
+    "description": "Demo backend SoilMon. Jalankan backend dulu (npm run dev di folder backend). Request yang mengirim data menulis ke database yang dipakai backend.\n\nSebelum mulai: jalankan npm run seed, lalu isi variabel collection password* dan apiKey* dengan hasil seed. Jalankan folder 0. Login dulu: request login menyimpan token ke variabel token*."
   },
   "variable": [
     {
       "key": "baseUrl",
       "value": "http://localhost:3000"
+    },
+    {
+      "key": "emailViewerA",
+      "value": "viewer-a@soilmon.local"
+    },
+    {
+      "key": "passwordViewerA",
+      "value": ""
+    },
+    {
+      "key": "emailViewerB",
+      "value": "viewer-b@soilmon.local"
+    },
+    {
+      "key": "passwordViewerB",
+      "value": ""
+    },
+    {
+      "key": "emailAdmin",
+      "value": "admin@soilmon.local"
+    },
+    {
+      "key": "passwordAdmin",
+      "value": ""
+    },
+    {
+      "key": "apiKeyNode01",
+      "value": ""
+    },
+    {
+      "key": "apiKeyNode02",
+      "value": ""
+    },
+    {
+      "key": "tokenViewerA",
+      "value": ""
+    },
+    {
+      "key": "tokenViewerB",
+      "value": ""
+    },
+    {
+      "key": "tokenAdmin",
+      "value": ""
     }
   ],
   "item": [
+    {
+      "name": "0. Login",
+      "item": [
+        {
+          "name": "Login viewer A (200)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Login sebagai viewer A. Token disimpan ke variabel tokenViewerA.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{emailViewerA}}\",\n  \"password\": \"{{passwordViewerA}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"returns a bearer token\", () => pm.expect(pm.response.json().data.tokenType).to.eql(\"Bearer\"));",
+                  "if (pm.response.code === 200) pm.collectionVariables.set(\"tokenViewerA\", pm.response.json().data.accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login viewer B (200)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Login sebagai viewer B. Token disimpan ke variabel tokenViewerB.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{emailViewerB}}\",\n  \"password\": \"{{passwordViewerB}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"returns a bearer token\", () => pm.expect(pm.response.json().data.tokenType).to.eql(\"Bearer\"));",
+                  "if (pm.response.code === 200) pm.collectionVariables.set(\"tokenViewerB\", pm.response.json().data.accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Login admin (200)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Login sebagai admin. Token disimpan ke variabel tokenAdmin.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{emailAdmin}}\",\n  \"password\": \"{{passwordAdmin}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"returns a bearer token\", () => pm.expect(pm.response.json().data.tokenType).to.eql(\"Bearer\"));",
+                  "if (pm.response.code === 200) pm.collectionVariables.set(\"tokenAdmin\", pm.response.json().data.accessToken);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Password salah (401)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Pesannya sama dengan email yang tidak terdaftar, supaya tidak bocor email mana yang punya akun.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{emailViewerA}}\",\n  \"password\": \"password-salah\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 401\", () => pm.response.to.have.status(401));",
+                  "pm.test(\"error body has code and message\", () => { const e = pm.response.json().error; pm.expect(e.code).to.be.a(\"string\"); pm.expect(e.message).to.be.a(\"string\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Email tidak terdaftar (401)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Respons sama persis dengan password salah.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"tidak-ada@soilmon.local\",\n  \"password\": \"apa-saja\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 401\", () => pm.response.to.have.status(401));",
+                  "pm.test(\"error body has code and message\", () => { const e = pm.response.json().error; pm.expect(e.code).to.be.a(\"string\"); pm.expect(e.message).to.be.a(\"string\"); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
     {
       "name": "1. Operasional",
       "item": [
@@ -52,7 +334,12 @@
           "name": "Daftar node",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAdmin}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/nodes",
               "host": [
@@ -64,7 +351,7 @@
                 "nodes"
               ]
             },
-            "description": "Semua node terdaftar, dengan waktu record terakhir (lastReceivedAt)."
+            "description": "Semua node terdaftar, dengan waktu record terakhir (lastReceivedAt). Sebagai admin (token dari folder 0)."
           },
           "event": [
             {
@@ -83,7 +370,12 @@
           "name": "Satu node",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAdmin}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/nodes/node-01",
               "host": [
@@ -96,7 +388,7 @@
                 "node-01"
               ]
             },
-            "description": "Satu node berdasarkan kodenya."
+            "description": "Satu node berdasarkan kodenya. Sebagai admin (token dari folder 0)."
           },
           "event": [
             {
@@ -115,7 +407,12 @@
           "name": "Node tidak ada (404)",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAdmin}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/nodes/node-99",
               "host": [
@@ -128,7 +425,7 @@
                 "node-99"
               ]
             },
-            "description": "Node yang belum terdaftar menghasilkan 404 not_found."
+            "description": "Node yang belum terdaftar menghasilkan 404 not_found. Sebagai admin (token dari folder 0)."
           },
           "event": [
             {
@@ -156,6 +453,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKeyNode01}}"
               }
             ],
             "url": {
@@ -201,6 +502,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKeyNode01}}"
               }
             ],
             "url": {
@@ -246,6 +551,10 @@
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKeyNode01}}"
               }
             ],
             "url": {
@@ -284,13 +593,17 @@
           ]
         },
         {
-          "name": "Node belum terdaftar (422)",
+          "name": "Key node-01 mengirim data node lain (403)",
           "request": {
             "method": "POST",
             "header": [
               {
                 "key": "Content-Type",
                 "value": "application/json"
+              },
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKeyNode01}}"
               }
             ],
             "url": {
@@ -304,10 +617,10 @@
                 "telemetry"
               ]
             },
-            "description": "Node yang belum terdaftar ditolak dengan unknown_node. Tidak ada yang ditulis.",
+            "description": "Key milik node-01 dipakai untuk nodeCode node-02: ditolak node_mismatch. Tidak ada yang ditulis.",
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"nodeCode\": \"node-99\",\n  \"rawRegisters\": [\n    512,\n    268,\n    1200,\n    65,\n    30,\n    12,\n    45\n  ],\n  \"batteryVoltage\": 3.31\n}",
+              "raw": "{\n  \"nodeCode\": \"node-02\",\n  \"rawRegisters\": [\n    512,\n    268,\n    1200,\n    65,\n    30,\n    12,\n    45\n  ],\n  \"batteryVoltage\": 3.31\n}",
               "options": {
                 "raw": {
                   "language": "json"
@@ -321,7 +634,7 @@
               "script": {
                 "type": "text/javascript",
                 "exec": [
-                  "pm.test(\"status 422\", () => pm.response.to.have.status(422));",
+                  "pm.test(\"status 403\", () => pm.response.to.have.status(403));",
                   "pm.test(\"error body has code and message\", () => { const e = pm.response.json().error; pm.expect(e.code).to.be.a(\"string\"); pm.expect(e.message).to.be.a(\"string\"); });"
                 ]
               }
@@ -337,7 +650,12 @@
           "name": "10 record terakhir",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAdmin}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/nodes/node-01/telemetry?limit=10",
               "host": [
@@ -357,7 +675,7 @@
                 }
               ]
             },
-            "description": "Terbaru dulu (received_at DESC)."
+            "description": "Terbaru dulu (received_at DESC). Sebagai admin (token dari folder 0)."
           },
           "event": [
             {
@@ -376,7 +694,12 @@
           "name": "Rentang waktu",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAdmin}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/nodes/node-01/telemetry?from=2026-10-20T00:00:00%2B07:00&to=2026-10-21T00:00:00%2B07:00&limit=100",
               "host": [
@@ -404,7 +727,7 @@
                 }
               ]
             },
-            "description": "from inklusif, to eksklusif, berdasarkan waktu diterima server."
+            "description": "from inklusif, to eksklusif, berdasarkan waktu diterima server. Sebagai admin (token dari folder 0)."
           },
           "event": [
             {
@@ -423,7 +746,12 @@
           "name": "Limit terlalu besar (422)",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAdmin}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/nodes/node-01/telemetry?limit=501",
               "host": [
@@ -443,7 +771,7 @@
                 }
               ]
             },
-            "description": "Batas limit 1 sampai 500."
+            "description": "Batas limit 1 sampai 500. Sebagai admin (token dari folder 0)."
           },
           "event": [
             {
@@ -462,7 +790,12 @@
           "name": "Node tidak ada (404)",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAdmin}}"
+              }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/v1/nodes/node-99/telemetry",
               "host": [
@@ -476,7 +809,7 @@
                 "telemetry"
               ]
             },
-            "description": "Riwayat node yang belum terdaftar: 404."
+            "description": "Riwayat node yang belum terdaftar: 404. Sebagai admin (token dari folder 0)."
           },
           "event": [
             {
@@ -485,6 +818,561 @@
                 "type": "text/javascript",
                 "exec": [
                   "pm.test(\"status 404\", () => pm.response.to.have.status(404));",
+                  "pm.test(\"error body has code and message\", () => { const e = pm.response.json().error; pm.expect(e.code).to.be.a(\"string\"); pm.expect(e.message).to.be.a(\"string\"); });"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "5. Otorisasi (demo)",
+      "description": "GET dan PATCH pada resource yang sama memberi hasil berbeda sesuai role.",
+      "item": [
+        {
+          "name": "Tanpa token (401)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/nodes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "nodes"
+              ]
+            },
+            "description": "Belum login."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 401\", () => pm.response.to.have.status(401));",
+                  "pm.test(\"error body has code and message\", () => { const e = pm.response.json().error; pm.expect(e.code).to.be.a(\"string\"); pm.expect(e.message).to.be.a(\"string\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Token rusak (401)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIn0.rusak"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/nodes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "nodes"
+              ]
+            },
+            "description": "Signature tidak cocok."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 401\", () => pm.response.to.have.status(401));",
+                  "pm.test(\"error body has code and message\", () => { const e = pm.response.json().error; pm.expect(e.code).to.be.a(\"string\"); pm.expect(e.message).to.be.a(\"string\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Viewer A: daftar node (200)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenViewerA}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/nodes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "nodes"
+              ]
+            },
+            "description": "Hanya node-01."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"only node-01\", () => pm.expect(pm.response.json().data.map(n => n.code)).to.eql([\"node-01\"]));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Viewer A: telemetry node-01 miliknya (200)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenViewerA}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/nodes/node-01/telemetry?limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "nodes",
+                "node-01",
+                "telemetry"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Viewer A: telemetry node-02 milik viewer B (403)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenViewerA}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/nodes/node-02/telemetry?limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "nodes",
+                "node-02",
+                "telemetry"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Node ada, tapi bukan miliknya."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 403\", () => pm.response.to.have.status(403));",
+                  "pm.test(\"error body has code and message\", () => { const e = pm.response.json().error; pm.expect(e.code).to.be.a(\"string\"); pm.expect(e.message).to.be.a(\"string\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Viewer B: telemetry node-01 milik viewer A (403)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenViewerB}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/nodes/node-01/telemetry?limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "nodes",
+                "node-01",
+                "telemetry"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": ""
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 403\", () => pm.response.to.have.status(403));",
+                  "pm.test(\"error body has code and message\", () => { const e = pm.response.json().error; pm.expect(e.code).to.be.a(\"string\"); pm.expect(e.message).to.be.a(\"string\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Viewer A: LIHAT config node-01 (200)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenViewerA}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/nodes/node-01/config",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "nodes",
+                "node-01",
+                "config"
+              ]
+            },
+            "description": "Viewer boleh membaca config node miliknya."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Viewer A: UBAH config node-01 (403)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenViewerA}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/nodes/node-01/config",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "nodes",
+                "node-01",
+                "config"
+              ]
+            },
+            "description": "Resource yang sama, tapi viewer tidak boleh mengubah.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"pumpDurationSec\": 30\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 403\", () => pm.response.to.have.status(403));",
+                  "pm.test(\"error body has code and message\", () => { const e = pm.response.json().error; pm.expect(e.code).to.be.a(\"string\"); pm.expect(e.message).to.be.a(\"string\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin: UBAH config node-01 (200)",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAdmin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/nodes/node-01/config",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "nodes",
+                "node-01",
+                "config"
+              ]
+            },
+            "description": "Hanya admin yang boleh mengubah. MENULIS ke database.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"moistureThreshold\": 400,\n  \"pumpDurationSec\": 30\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Admin: telemetry node-02 (200)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAdmin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/nodes/node-02/telemetry?limit=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "nodes",
+                "node-02",
+                "telemetry"
+              ],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            },
+            "description": "Admin membaca semua node."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Telemetry dengan API key salah (401)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "X-API-Key",
+                "value": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/telemetry",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "telemetry"
+              ]
+            },
+            "description": "",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nodeCode\": \"node-01\",\n  \"rawRegisters\": [\n    512,\n    268,\n    1200,\n    65,\n    30,\n    12,\n    45\n  ],\n  \"batteryVoltage\": 3.31\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 401\", () => pm.response.to.have.status(401));",
+                  "pm.test(\"error body has code and message\", () => { const e = pm.response.json().error; pm.expect(e.code).to.be.a(\"string\"); pm.expect(e.message).to.be.a(\"string\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Telemetry dengan JWT user (401)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{tokenAdmin}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/telemetry",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "telemetry"
+              ]
+            },
+            "description": "Endpoint ingest hanya menerima API key device.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nodeCode\": \"node-01\",\n  \"rawRegisters\": [\n    512,\n    268,\n    1200,\n    65,\n    30,\n    12,\n    45\n  ],\n  \"batteryVoltage\": 3.31\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 401\", () => pm.response.to.have.status(401));",
+                  "pm.test(\"error body has code and message\", () => { const e = pm.response.json().error; pm.expect(e.code).to.be.a(\"string\"); pm.expect(e.message).to.be.a(\"string\"); });"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "API key di GET /nodes (401)",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKeyNode01}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/nodes",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "nodes"
+              ]
+            },
+            "description": "Endpoint user hanya menerima JWT."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 401\", () => pm.response.to.have.status(401));",
                   "pm.test(\"error body has code and message\", () => { const e = pm.response.json().error; pm.expect(e.code).to.be.a(\"string\"); pm.expect(e.message).to.be.a(\"string\"); });"
                 ]
               }

@@ -36,3 +36,5 @@ Thumbs.db
 uts/
 anti-slop/
 CLAUDE.md.backup
+*.zip
+/package-lock.json
