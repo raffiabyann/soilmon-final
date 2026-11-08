@@ -182,7 +182,7 @@ function ConfigForm({ initial, canEdit }: { initial: NodeConfig; canEdit: boolea
           <h2 className="label-mono text-ink">Node {saved.nodeCode}</h2>
           <p className="text-xs text-ink-muted">
             {saved.updatedAt
-              ? `Terakhir diubah ${formatDateTimeWib(saved.updatedAt)} WIB`
+              ? `Terakhir diubah ${formatDateTimeWib(saved.updatedAt)}`
               : "Belum pernah diatur"}
           </p>
         </div>
