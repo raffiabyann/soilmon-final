@@ -295,7 +295,7 @@ function HistoryResults({
                   {r.measuredAt === null ? <Missing /> : formatDateTimeWib(r.measuredAt)}
                 </td>
                 <td className="text-right font-mono text-xs tabular-nums text-ink">
-                  {r.batteryVoltage === null ? <Missing /> : r.batteryVoltage}
+                  {r.batteryVoltage === null ? <Missing /> : r.batteryVoltage.toFixed(2)}
                 </td>
                 {REGISTER_LABELS.map((label, i) => (
                   <td key={label} className="text-right font-mono text-xs tabular-nums text-ink">
