@@ -1,317 +1,346 @@
-import type { MetricKey } from "@soilmon/shared";
-import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
-import { useState, type ReactNode } from "react";
+import { Info } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
-import { Badge } from "../components/Badge";
 import { Card } from "../components/Card";
+import { LoadError } from "../components/LoadError";
 import { PageHeader } from "../components/PageHeader";
-import { RangeGauge } from "../components/RangeGauge";
 import { Segmented } from "../components/Segmented";
-import { getMetric } from "../lib/metrics";
-import { groupPackets } from "../lib/packets";
-import { HOUR_MS, formatClockWib, formatShortDateWib } from "../lib/time";
-import { MOCK_NOW, mockNodes } from "../mocks/data";
-import { mockReadings } from "../mocks/telemetry";
+import { TextField } from "../components/TextField";
+import {
+  ApiError,
+  describeApiError,
+  fetchNodeTelemetry,
+  fetchNodes,
+  type ApiNode,
+  type TelemetryRecord,
+} from "../lib/api";
+import { formatDateTimeWib, wibInputToIso } from "../lib/time";
+import { useLoad } from "../lib/useLoad";
 
-const PAGE_SIZE = 10;
+/** Paket per permintaan. Batas backend 500; 50 adalah nilai bawaannya. */
+const PAGE_LIMIT = 50;
+const REGISTER_COUNT = 7;
+const REGISTER_LABELS = Array.from({ length: REGISTER_COUNT }, (_, i) => `R${i + 1}`);
 
-type Range = "24h" | "7d";
-type StatusFilter = "all" | "outside";
-
-const RANGE_HOURS: Record<Range, number> = { "24h": 24, "7d": 7 * 24 };
-const RANGE_LABEL: Record<Range, string> = { "24h": "24 jam terakhir", "7d": "7 hari terakhir" };
-
-/** Kolom metrik di tabel, urut seperti di Figma. */
-const COLUMNS: { key: MetricKey; label: string }[] = [
-  { key: "soil_temperature", label: "Suhu tanah" },
-  { key: "soil_moisture", label: "Kelembaban" },
-  { key: "soil_ph", label: "pH" },
-  { key: "battery_percent", label: "Baterai" },
-  { key: "rssi", label: "Sinyal LoRa" },
-];
-
-const ALL = "all";
-
-/** Data History (Figma: "Data History · Redesign"): satu baris = satu paket dari node. Data dari mocks/. */
+/** Data History: satu baris = satu paket telemetry dari node, dibaca dari backend. */
 export function HistoryPage() {
   const [params, setParams] = useSearchParams();
-  const nodeParam = params.get("node");
-  const nodeFilter = mockNodes.some((n) => n.code === nodeParam) ? (nodeParam ?? ALL) : ALL;
-  const [range, setRange] = useState<Range>("24h");
-  const [status, setStatus] = useState<StatusFilter>("all");
-  const [page, setPage] = useState(1);
+  const [fromText, setFromText] = useState("");
+  const [toText, setToText] = useState("");
 
-  const since = MOCK_NOW.getTime() - RANGE_HOURS[range] * HOUR_MS;
-  const packets = groupPackets(
-    mockReadings.filter(
-      (r) =>
-        new Date(r.recordedAt).getTime() > since &&
-        (nodeFilter === ALL || r.nodeCode === nodeFilter),
-    ),
-  ).filter((p) => status === "all" || p.outside.length > 0);
+  // GET /nodes hanya berisi node yang boleh dibaca pengguna ini; admin mendapat semuanya.
+  const nodes = useLoad(fetchNodes, "nodes");
+  const list = nodes.data ?? [];
+  const requested = params.get("node");
+  const node = list.find((n) => n.code === requested) ?? list[0] ?? null;
 
-  const readingCount = packets.reduce((sum, p) => sum + Object.keys(p.values).length, 0);
-  const totalPages = Math.max(1, Math.ceil(packets.length / PAGE_SIZE));
-  const current = Math.min(page, totalPages);
-  const rows = packets.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE);
-
-  const setNode = (code: string) => {
-    setParams(code === ALL ? {} : { node: code });
-    setPage(1);
-  };
+  const from = wibInputToIso(fromText);
+  const to = wibInputToIso(toText);
+  const reversed = from !== null && to !== null && from >= to;
+  const filtered = fromText !== "" || toText !== "";
 
   return (
     <div className="space-y-5">
       <PageHeader
         title="Data History"
-        description="Satu baris = satu paket data yang dikirim node lewat LoRa."
-        stat={packets.length}
-        statCaption={`paket · ${readingCount} bacaan · ${RANGE_LABEL[range].replace(" terakhir", "")}`}
+        description="Satu baris = satu paket data dari node, terbaru di atas."
       />
 
-      <Card padded={false} className="flex flex-wrap items-center gap-3 px-4 py-3.5">
-        <Segmented
-          ariaLabel="Filter node"
-          value={nodeFilter}
-          onChange={setNode}
-          options={[
-            { value: ALL, label: "Semua node" },
-            ...mockNodes.map((n) => ({ value: n.code, label: n.code })),
-          ]}
-        />
-        <LabeledSelect
-          label="Status"
-          value={status}
-          onChange={(v) => {
-            setStatus(v as StatusFilter);
-            setPage(1);
-          }}
-        >
-          <option value="all">Semua paket</option>
-          <option value="outside">Ada di luar batas</option>
-        </LabeledSelect>
-        <LabeledSelect
-          label="Rentang"
-          value={range}
-          onChange={(v) => {
-            setRange(v as Range);
-            setPage(1);
-          }}
-        >
-          <option value="24h">{RANGE_LABEL["24h"]}</option>
-          <option value="7d">{RANGE_LABEL["7d"]}</option>
-        </LabeledSelect>
-        <div className="ml-auto flex flex-wrap items-center gap-4 text-xs text-ink-muted">
-          <span className="flex items-center gap-1.5">
-            <span className="h-1.5 w-4 rounded-full bg-band" /> Batas normal
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="size-2 rounded-full bg-ink" /> Nilai
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="size-2 rounded-full bg-danger" /> Di luar batas
-          </span>
-        </div>
-      </Card>
+      {nodes.error ? (
+        <LoadError error={nodes.error} nodeCode="" onRetry={nodes.reload} />
+      ) : nodes.loading ? (
+        <Card>
+          <p role="status" className="text-sm text-ink-muted">
+            Memuat daftar node…
+          </p>
+        </Card>
+      ) : node === null ? (
+        <Card>
+          <p className="text-sm text-ink-muted">Belum ada node yang bisa Anda akses.</p>
+        </Card>
+      ) : (
+        <>
+          <Card padded={false} className="space-y-4 px-4 py-4">
+            <Segmented
+              ariaLabel="Pilih node"
+              value={node.code}
+              onChange={(code) => setParams({ node: code })}
+              options={list.map((n) => ({ value: n.code, label: n.code }))}
+            />
+            <div className="flex flex-wrap items-end gap-4">
+              <TextField
+                className="min-w-0 flex-1 basis-56"
+                label="Dari (WIB)"
+                type="datetime-local"
+                value={fromText}
+                onChange={(e) => setFromText(e.target.value)}
+                error={reversed ? "Harus lebih awal dari waktu Sampai." : undefined}
+              />
+              <TextField
+                className="min-w-0 flex-1 basis-56"
+                label="Sampai (WIB)"
+                type="datetime-local"
+                value={toText}
+                onChange={(e) => setToText(e.target.value)}
+                hint="Paket pada menit ini tidak ikut."
+              />
+              <button
+                type="button"
+                disabled={!filtered}
+                onClick={() => {
+                  setFromText("");
+                  setToText("");
+                }}
+                className="rounded-xl border border-line px-4 py-2.5 text-xs font-semibold text-ink-soft hover:bg-line-soft disabled:opacity-40 pointer-coarse:min-h-11"
+              >
+                Hapus rentang
+              </button>
+            </div>
+          </Card>
 
+          <p
+            role="note"
+            className="flex items-start gap-2 rounded-xl bg-line-soft px-4 py-2.5 text-sm text-ink-soft"
+          >
+            <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
+            <span>
+              R1 sampai R7 adalah register mentah dari node (bilangan bulat 0 sampai 65535) dan
+              belum dikalibrasi. Arti, skala, dan satuan register belum diverifikasi, jadi nilainya
+              tidak diubah menjadi suhu, kelembapan, atau pH.
+            </span>
+          </p>
+
+          {reversed ? (
+            <Card>
+              <p role="alert" className="text-sm text-danger-ink">
+                Rentang waktu terbalik. Ubah Dari atau Sampai agar riwayat bisa dimuat.
+              </p>
+            </Card>
+          ) : (
+            <HistoryResults
+              key={`${node.code}|${from ?? ""}|${to ?? ""}`}
+              node={node}
+              from={from}
+              to={to}
+              onClearRange={
+                filtered
+                  ? () => {
+                      setFromText("");
+                      setToText("");
+                    }
+                  : null
+              }
+            />
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Halaman pertama dimuat lewat useLoad. "Muat lebih lama" meminta halaman berikutnya dengan `to`
+ * tepat setelah paket paling lama yang sudah tampil, karena backend tidak punya kursor.
+ * Komponen ini dipasang ulang (key) setiap node atau rentang berubah, jadi daftarnya mulai dari nol.
+ */
+function HistoryResults({
+  node,
+  from,
+  to,
+  onClearRange,
+}: {
+  node: ApiNode;
+  from: string | null;
+  to: string | null;
+  onClearRange: (() => void) | null;
+}) {
+  const nodeCode = node.code;
+  const first = useLoad(
+    (signal) =>
+      fetchNodeTelemetry(nodeCode, {
+        limit: PAGE_LIMIT,
+        from: from ?? undefined,
+        to: to ?? undefined,
+        signal,
+      }),
+    "first",
+  );
+  const [older, setOlder] = useState<{ records: TelemetryRecord[]; lastCount: number | null }>({
+    records: [],
+    lastCount: null,
+  });
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [moreError, setMoreError] = useState<ApiError | null>(null);
+  const pending = useRef<AbortController | null>(null);
+  useEffect(() => () => pending.current?.abort(), []);
+
+  if (first.error) {
+    return <LoadError error={first.error} nodeCode={nodeCode} onRetry={first.reload} />;
+  }
+  if (first.data === null) {
+    return (
+      <Card>
+        <p role="status" className="text-sm text-ink-muted">
+          Memuat riwayat {nodeCode}…
+        </p>
+      </Card>
+    );
+  }
+
+  const records = [...first.data, ...older.records];
+  // Halaman yang tidak penuh berarti sudah sampai paket paling lama.
+  const hasMore = (older.lastCount ?? first.data.length) === PAGE_LIMIT;
+
+  async function loadMore() {
+    const oldest = records[records.length - 1];
+    if (!oldest || loadingMore) return;
+    const controller = new AbortController();
+    pending.current = controller;
+    setLoadingMore(true);
+    setMoreError(null);
+    try {
+      // `to` tidak termasuk, dan ISO hanya sampai milidetik sedangkan database menyimpan
+      // mikrodetik. Tambah 1 ms supaya paket sesama milidetik tidak terlewat; duplikat dibuang lewat id.
+      const before = new Date(new Date(oldest.receivedAt).getTime() + 1).toISOString();
+      const page = await fetchNodeTelemetry(nodeCode, {
+        limit: PAGE_LIMIT,
+        from: from ?? undefined,
+        to: before,
+        signal: controller.signal,
+      });
+      const seen = new Set(records.map((r) => r.id));
+      const fresh = page.filter((r) => !seen.has(r.id));
+      // Tanpa paket baru, anggap habis supaya tombol tidak berputar di tempat.
+      setOlder((prev) => ({
+        records: [...prev.records, ...fresh],
+        lastCount: fresh.length === 0 ? 0 : page.length,
+      }));
+    } catch (err) {
+      if (controller.signal.aborted) return;
+      setMoreError(
+        err instanceof ApiError
+          ? err
+          : new ApiError(0, "unexpected_error", "Terjadi kesalahan yang tidak terduga."),
+      );
+    } finally {
+      if (!controller.signal.aborted) setLoadingMore(false);
+    }
+  }
+
+  if (records.length === 0) {
+    return (
+      <Card>
+        {onClearRange ? (
+          <>
+            <p className="text-sm text-ink-muted">
+              Tidak ada paket dari {nodeCode} pada rentang waktu ini.
+              {node.lastReceivedAt &&
+                ` Paket terakhir node ini diterima ${formatDateTimeWib(node.lastReceivedAt)}.`}
+            </p>
+            <button
+              type="button"
+              onClick={onClearRange}
+              className="mt-4 rounded-xl border border-line px-4 py-2 text-xs font-semibold text-ink-soft hover:bg-line-soft pointer-coarse:min-h-11"
+            >
+              Hapus rentang waktu
+            </button>
+          </>
+        ) : (
+          <p className="text-sm text-ink-muted">
+            Node {nodeCode} belum mengirim paket data. Paket muncul di sini setelah gateway
+            mengirimnya ke backend.
+          </p>
+        )}
+      </Card>
+    );
+  }
+
+  return (
+    <>
       <Card padded={false} className="overflow-x-auto p-2">
-        <table className="w-full min-w-[960px] text-left text-sm">
+        <table className="w-full min-w-[920px] text-left text-sm">
+          <caption className="sr-only">
+            Paket telemetry node {nodeCode}, terbaru di atas. R1 sampai R7 adalah register mentah.
+          </caption>
           <thead>
             <tr className="label-mono [&>th]:bg-canvas [&>th]:px-4 [&>th]:py-3 [&>th]:font-medium">
-              <th className="rounded-l-xl">Waktu</th>
-              <th>Node</th>
-              {COLUMNS.map((c) => (
-                <th key={c.key}>{c.label}</th>
+              <th scope="col" className="sticky left-0 rounded-l-xl">
+                Waktu diterima
+              </th>
+              <th scope="col">Waktu ukur</th>
+              <th scope="col" className="text-right">
+                Baterai (V)
+              </th>
+              {REGISTER_LABELS.map((label, i) => (
+                <th
+                  key={label}
+                  scope="col"
+                  className={`text-right ${i === REGISTER_COUNT - 1 ? "rounded-r-xl" : ""}`}
+                >
+                  {label}
+                </th>
               ))}
-              <th className="rounded-r-xl text-right">Status</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((p) => {
-              const node = mockNodes.find((n) => n.code === p.nodeCode);
-              const bad = p.outside.length > 0;
-              return (
-                <tr
-                  key={`${p.nodeCode}-${p.recordedAt}`}
-                  className={`border-b border-line-soft last:border-0 [&>td]:px-4 [&>td]:py-3 ${bad ? "bg-danger-soft/60" : ""}`}
-                >
-                  <td>
-                    <p className="font-mono text-xs text-ink">{formatClockWib(p.recordedAt)}</p>
-                    <p className="text-xs text-ink-muted">{formatShortDateWib(p.recordedAt)}</p>
-                  </td>
-                  <td>
-                    <p className="flex items-center gap-1.5 font-mono text-xs font-semibold text-ink">
-                      <span className={`size-1.5 rounded-full ${bad ? "bg-danger" : "bg-ok"}`} />
-                      {p.nodeCode}
-                    </p>
-                    <p className="text-xs text-ink-muted">{node?.name}</p>
-                  </td>
-                  {COLUMNS.map((c) => {
-                    const value = p.values[c.key];
-                    const metric = getMetric(c.key);
-                    const out = p.outside.includes(c.key);
-                    const hasRange = metric?.normalMin !== null || metric?.normalMax !== null;
-                    return (
-                      <td key={c.key}>
-                        {value === undefined ? (
-                          <span className="text-ink-muted">–</span>
-                        ) : (
-                          <>
-                            <p className={`tabular-nums ${out ? "text-danger-ink" : "text-ink"}`}>
-                              {value}
-                              {metric?.unit && (
-                                <span className="ml-0.5 text-xs text-ink-muted">{metric.unit}</span>
-                              )}
-                            </p>
-                            {hasRange ? (
-                              <RangeGauge
-                                value={value}
-                                metric={metric}
-                                className="mt-1.5 w-[84px]"
-                              />
-                            ) : (
-                              <p className="text-xs text-ink-muted">tanpa batas normal</p>
-                            )}
-                          </>
-                        )}
-                      </td>
-                    );
-                  })}
-                  <td className="text-right">
-                    {bad ? (
-                      <Badge tone="danger">{p.outside.length} di luar batas</Badge>
-                    ) : (
-                      <Badge tone="ok">Semua normal</Badge>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-            {rows.length === 0 && (
-              <tr>
-                <td
-                  colSpan={COLUMNS.length + 3}
-                  className="py-10 text-center text-sm text-ink-muted"
-                >
-                  Tidak ada paket untuk filter ini.
+            {records.map((r) => (
+              <tr
+                key={r.id}
+                className="border-b border-line-soft last:border-0 [&>td]:px-4 [&>td]:py-3"
+              >
+                <td className="sticky left-0 bg-surface font-mono text-xs whitespace-nowrap text-ink">
+                  {formatDateTimeWib(r.receivedAt)}
                 </td>
+                <td className="font-mono text-xs whitespace-nowrap text-ink">
+                  {r.measuredAt === null ? <Missing /> : formatDateTimeWib(r.measuredAt)}
+                </td>
+                <td className="text-right font-mono text-xs tabular-nums text-ink">
+                  {r.batteryVoltage === null ? <Missing /> : r.batteryVoltage}
+                </td>
+                {REGISTER_LABELS.map((label, i) => (
+                  <td key={label} className="text-right font-mono text-xs tabular-nums text-ink">
+                    {r.rawRegisters[i] === undefined ? <Missing /> : r.rawRegisters[i]}
+                  </td>
+                ))}
               </tr>
-            )}
+            ))}
           </tbody>
         </table>
       </Card>
 
-      <Pagination
-        page={current}
-        totalPages={totalPages}
-        onChange={setPage}
-        summary={
-          packets.length === 0
-            ? "Tidak ada paket"
-            : `Menampilkan ${(current - 1) * PAGE_SIZE + 1}–${Math.min(current * PAGE_SIZE, packets.length)} dari ${packets.length} paket`
-        }
-      />
-    </div>
-  );
-}
-
-function LabeledSelect({
-  label,
-  value,
-  onChange,
-  children,
-}: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  children: ReactNode;
-}) {
-  return (
-    <label className="relative flex flex-col rounded-xl border border-line px-3.5 py-1.5 focus-within:border-brand focus-within:ring-2 focus-within:ring-brand">
-      <span className="font-mono text-[9px] tracking-wider text-ink-muted uppercase">{label}</span>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="appearance-none bg-transparent pr-6 text-sm font-semibold text-ink outline-none pointer-coarse:min-h-11"
-      >
-        {children}
-      </select>
-      <ChevronDown className="pointer-events-none absolute right-3 bottom-2.5 size-4 text-ink-muted" />
-    </label>
-  );
-}
-
-/** Nomor halaman dengan "…" (contoh: 1 2 3 … 5). */
-function pageList(page: number, total: number): (number | "gap")[] {
-  const set = new Set([1, total, page - 1, page, page + 1].filter((n) => n >= 1 && n <= total));
-  if (page <= 3) [2, 3].forEach((n) => n <= total && set.add(n));
-  const sorted = [...set].sort((a, b) => a - b);
-  const out: (number | "gap")[] = [];
-  sorted.forEach((n, i) => {
-    const prev = sorted[i - 1];
-    if (prev !== undefined && n - prev > 1) out.push("gap");
-    out.push(n);
-  });
-  return out;
-}
-
-function Pagination({
-  page,
-  totalPages,
-  onChange,
-  summary,
-}: {
-  page: number;
-  totalPages: number;
-  onChange: (page: number) => void;
-  summary: string;
-}) {
-  // Warna dipisah dari ukuran: kalau digabung, bg-surface mengalahkan bg-brand di tombol aktif.
-  const shape =
-    "grid size-[34px] place-items-center pointer-coarse:size-11 rounded-[10px] border text-xs";
-  const btn = `${shape} border-line bg-surface text-ink-soft hover:bg-line-soft disabled:opacity-40`;
-  return (
-    <div className="flex flex-wrap items-center justify-between gap-3 px-2">
-      <p className="text-xs text-ink-muted">{summary}</p>
-      <nav className="flex flex-wrap gap-1.5" aria-label="Halaman">
-        <button
-          type="button"
-          className={btn}
-          disabled={page === 1}
-          onClick={() => onChange(page - 1)}
-          aria-label="Sebelumnya"
-        >
-          <ChevronLeft className="size-4" />
-        </button>
-        {pageList(page, totalPages).map((n, i) =>
-          n === "gap" ? (
-            <span key={`gap-${i}`} className={`${btn} pointer-events-none`}>
-              …
-            </span>
-          ) : (
-            <button
-              key={n}
-              type="button"
-              onClick={() => onChange(n)}
-              aria-current={n === page ? "page" : undefined}
-              className={
-                n === page ? `${shape} border-brand bg-brand font-semibold text-on-accent` : btn
-              }
-            >
-              {n}
-            </button>
-          ),
+      <div className="flex flex-wrap items-center justify-between gap-3 px-2">
+        <p className="text-xs text-ink-muted">
+          {hasMore
+            ? `Menampilkan ${records.length} paket, terbaru di atas.`
+            : `Semua ${records.length} paket pada rentang ini sudah ditampilkan.`}
+        </p>
+        {hasMore && (
+          <button
+            type="button"
+            onClick={loadMore}
+            disabled={loadingMore}
+            aria-busy={loadingMore}
+            className="rounded-xl border border-line px-4 py-2 text-xs font-semibold text-ink-soft hover:bg-line-soft disabled:opacity-50 pointer-coarse:min-h-11"
+          >
+            {loadingMore ? "Memuat…" : `Muat ${PAGE_LIMIT} paket lebih lama`}
+          </button>
         )}
-        <button
-          type="button"
-          className={btn}
-          disabled={page === totalPages}
-          onClick={() => onChange(page + 1)}
-          aria-label="Berikutnya"
-        >
-          <ChevronRight className="size-4" />
-        </button>
-      </nav>
-    </div>
+      </div>
+      {moreError && (
+        <p role="alert" className="px-2 text-xs text-danger-ink">
+          {describeApiError(moreError, nodeCode)} Tekan tombol untuk mencoba lagi.
+        </p>
+      )}
+    </>
+  );
+}
+
+/** Sel tanpa nilai: "-" untuk mata, dan teks untuk pembaca layar. */
+function Missing() {
+  return (
+    <>
+      <span aria-hidden>-</span>
+      <span className="sr-only">tidak ada</span>
+    </>
   );
 }

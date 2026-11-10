@@ -2,6 +2,7 @@ import { Lock, Save } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { useSearchParams } from "react-router";
 import { Card } from "../components/Card";
+import { LoadError } from "../components/LoadError";
 import { PageHeader } from "../components/PageHeader";
 import { Segmented } from "../components/Segmented";
 import { TextField } from "../components/TextField";
@@ -88,32 +89,6 @@ function NodeConfigPanel({ nodeCode, canEdit }: { nodeCode: string; canEdit: boo
     );
   }
   return <ConfigForm initial={config.data} canEdit={canEdit} />;
-}
-
-/** Kotak pesan untuk kegagalan memuat (503, backend mati, 403, dan lainnya). Halaman tidak pernah kosong. */
-function LoadError({
-  error,
-  nodeCode,
-  onRetry,
-}: {
-  error: ApiError;
-  nodeCode: string;
-  onRetry: () => void;
-}) {
-  return (
-    <Card>
-      <p role="alert" className="text-sm text-danger-ink">
-        {error.code === "forbidden" ? error.message : describeApiError(error, nodeCode)}
-      </p>
-      <button
-        type="button"
-        onClick={onRetry}
-        className="mt-4 rounded-xl border border-line px-4 py-2 text-xs font-semibold text-ink-soft hover:bg-line-soft pointer-coarse:min-h-11"
-      >
-        Coba lagi
-      </button>
-    </Card>
-  );
 }
 
 const toText = (value: number | null) => (value === null ? "" : String(value));

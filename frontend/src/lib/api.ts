@@ -128,12 +128,20 @@ async function request(
   return body;
 }
 
-/** Riwayat telemetry satu node, terbaru dulu (GET /api/v1/nodes/{nodeCode}/telemetry). */
+/**
+ * Riwayat telemetry satu node, terbaru dulu (GET /api/v1/nodes/{nodeCode}/telemetry).
+ * `limit` 1 sampai 500 (backend memakai 50 kalau kosong). `from` (termasuk) dan `to` (tidak
+ * termasuk) berlaku untuk waktu terima server, format ISO 8601 dengan zona waktu.
+ */
 export async function fetchNodeTelemetry(
   nodeCode: string,
-  options: { limit?: number; signal?: AbortSignal } = {},
+  options: { limit?: number; from?: string; to?: string; signal?: AbortSignal } = {},
 ): Promise<TelemetryRecord[]> {
-  const query = options.limit === undefined ? "" : `?limit=${options.limit}`;
+  const params = new URLSearchParams();
+  if (options.limit !== undefined) params.set("limit", String(options.limit));
+  if (options.from !== undefined) params.set("from", options.from);
+  if (options.to !== undefined) params.set("to", options.to);
+  const query = params.size > 0 ? `?${params}` : "";
   const body = await request(
     "GET",
     `/api/v1/nodes/${encodeURIComponent(nodeCode)}/telemetry${query}`,

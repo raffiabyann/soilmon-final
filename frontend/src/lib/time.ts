@@ -83,5 +83,17 @@ export function formatClockWib(iso: string | Date): string {
   return formatTimeWib(iso).replace(" WIB", "");
 }
 
+/**
+ * Nilai <input type="datetime-local"> ("2026-11-10T08:30") dibaca sebagai waktu WIB, bukan zona
+ * browser, supaya sama dengan waktu yang ditampilkan. Mengembalikan ISO UTC, atau null kalau kosong
+ * atau bukan format itu (browser sendiri tidak mengeluarkan tanggal yang tidak ada).
+ */
+export function wibInputToIso(value: string): string | null {
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) return null;
+  // WIB tetap UTC+7 sepanjang tahun (tanpa jam musim panas).
+  const date = new Date(`${value}:00+07:00`);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
 export const HOUR_MS = 60 * 60 * 1000;
 export const DAY_MS = 24 * HOUR_MS;
