@@ -13,6 +13,14 @@ const GET_CONFIG = `
   WHERE n.id = $1
     AND ${canReadNode({ nodeId: "n.id", role: "$2", userId: "$3" })}`;
 
+// The device path. The node id comes from the verified API key, so there is no user and no
+// ownership condition: the key already is the proof of ownership.
+const GET_DEVICE_CONFIG = `
+  SELECT c.moisture_threshold, c.pump_duration_sec, c.updated_by, c.updated_at
+  FROM nodes n
+  LEFT JOIN node_config c ON c.node_id = n.id
+  WHERE n.id = $1`;
+
 // Creates the row on the first change. $5 and $7 say whether moistureThreshold and
 // pumpDurationSec were sent: a field that was not sent keeps its stored value.
 // "$3 = 'admin'" repeats requireAdmin inside SQL, so a non-admin caller writes nothing even if a
@@ -53,6 +61,14 @@ export function createNodeConfigStore(db) {
       const { rows } = await query(GET_CONFIG, [nodeId, user.role, user.id]);
       if (rows.length === 0) return { access: ACCESS.DENIED };
       return { access, config: toConfig(rows[0], nodeCode) };
+    },
+
+    // device is { nodeId, nodeCode } from requireDeviceKey. Returns { access, config }; access is
+    // "missing" only if the node was deleted while its key was still active.
+    async getDeviceConfig(device) {
+      const { rows } = await query(GET_DEVICE_CONFIG, [device.nodeId]);
+      if (rows.length === 0) return { access: ACCESS.MISSING };
+      return { access: ACCESS.GRANTED, config: toConfig(rows[0], device.nodeCode) };
     },
 
     // Applies the fields present in changes. Returns { access, config }.

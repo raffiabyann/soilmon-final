@@ -277,5 +277,33 @@ describe("authorisation against PostgreSQL", () => {
         assert.equal((await send(keys["itest-a"], "itest-b")).status, 403);
         assert.equal((await send(keys.revoked, "itest-a")).status, 401);
       }));
+
+    test("device config: each key reads only its own node's config, a revoked key is 401", { skip }, () =>
+      withApp(async ({ baseUrl, keys, login, users }) => {
+        const adminAuth = { authorization: `Bearer ${await login(users.admin.email)}` };
+        const patch = await fetch(`${baseUrl}/api/v1/nodes/itest-b/config`, {
+          method: "PATCH",
+          headers: { ...adminAuth, "content-type": "application/json" },
+          body: JSON.stringify({ pumpDurationSec: 45 }),
+        });
+        assert.equal(patch.status, 200);
+
+        const read = (key) => fetch(`${baseUrl}/api/v1/device/config`, { headers: { "x-api-key": key } });
+        const a = await read(keys["itest-a"]);
+        assert.equal(a.status, 200);
+        const aBody = (await a.json()).data;
+        assert.equal(aBody.nodeCode, "itest-a");
+        assert.equal(aBody.pumpDurationSec, null);
+
+        const b = await read(keys["itest-b"]);
+        assert.equal(b.status, 200);
+        const bBody = (await b.json()).data;
+        assert.equal(bBody.nodeCode, "itest-b");
+        assert.equal(bBody.pumpDurationSec, 45);
+        // The admin who made the change is not shown to the device.
+        assert.equal("updatedBy" in bBody, false);
+
+        assert.equal((await read(keys.revoked)).status, 401);
+      }));
   });
 });

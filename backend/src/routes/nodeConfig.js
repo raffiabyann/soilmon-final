@@ -6,7 +6,7 @@ import { validateConfigPatch } from "../nodeConfig/validate.js";
 
 // The same resource answers differently by role: any user who may read the node may GET its
 // configuration, but only an admin may PATCH it. A viewer's PATCH is a 403 even for its own node.
-export function createNodeConfigRouter(store, { requireAuth, requireAdmin }) {
+export function createNodeConfigRouter(store, { requireAuth, requireAdmin, requireDeviceKey }) {
   const router = Router();
 
   function requireStore() {
@@ -28,6 +28,14 @@ export function createNodeConfigRouter(store, { requireAuth, requireAdmin }) {
     const nodeCode = nodeCodeParam(req);
     const { config } = requireGranted(await requireStore().getConfig(nodeCode, req.user));
     res.json({ data: config });
+  });
+
+  // A device reads only its own node's configuration: the node comes from the API key, never from
+  // the URL or the query string. updatedBy names an admin, which the device has no need to know.
+  router.get("/device/config", requireDeviceKey, async (req, res) => {
+    const { config } = requireGranted(await requireStore().getDeviceConfig(req.device));
+    const { updatedBy, ...deviceConfig } = config;
+    res.json({ data: deviceConfig });
   });
 
   router.patch("/nodes/:nodeCode/config", requireAuth, requireAdmin, async (req, res) => {

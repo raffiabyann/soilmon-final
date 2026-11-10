@@ -53,6 +53,15 @@ function config(nodeCode, values = {}) {
   };
 }
 
+const DEVICE_CONFIG_VALUES = {
+  "node-01": {
+    moistureThreshold: 412.5,
+    pumpDurationSec: 30,
+    updatedBy: "3",
+    updatedAt: "2026-11-05T00:00:00.000Z",
+  },
+};
+
 function fakeStores(passwordHash) {
   const calls = [];
   return {
@@ -91,6 +100,13 @@ function fakeStores(passwordHash) {
       },
     },
     nodeConfigStore: {
+      // Answers for the node in the device record only, like the SQL, which takes the node id
+      // from the verified key. node-02 has never been configured.
+      async getDeviceConfig(device) {
+        calls.push(["getDeviceConfig", device.nodeCode]);
+        const values = DEVICE_CONFIG_VALUES[device.nodeCode] ?? {};
+        return { access: "granted", config: config(device.nodeCode, values) };
+      },
       async getConfig(nodeCode, user) {
         calls.push(["getConfig", nodeCode, user]);
         const result = access(nodeCode, user);
@@ -387,6 +403,83 @@ describe("auth routes", () => {
       assert.equal(res.status, 403);
       assert.equal((await res.json()).error.code, "node_mismatch");
       assert.equal(stores.calls.length, 0);
+    });
+
+    test("GET device config with the right API key: 200 with its own node's config, without updatedBy", async () => {
+      const res = await request("GET", "/api/v1/device/config", { apiKey: KEYS["node-01"] });
+      assert.equal(res.status, 200);
+      // The store returns updatedBy: "3"; the response must not carry it.
+      const { updatedBy, ...expected } = config("node-01", DEVICE_CONFIG_VALUES["node-01"]);
+      assert.equal(updatedBy, "3");
+      assert.deepEqual((await res.json()).data, expected);
+      assert.deepEqual(stores.calls, [["getDeviceConfig", "node-01"]]);
+    });
+
+    test("GET device config of a node never configured: the user endpoint's nulls, minus updatedBy", async () => {
+      const device = await request("GET", "/api/v1/device/config", { apiKey: KEYS["node-02"] });
+      const user = await request("GET", "/api/v1/nodes/node-02/config", { token: tokens.admin });
+      assert.equal(device.status, 200);
+      const { updatedBy, ...userFields } = (await user.json()).data;
+      assert.equal(updatedBy, null);
+      assert.deepEqual((await device.json()).data, userFields);
+    });
+
+    test("the user endpoint still returns updatedBy", async () => {
+      const res = await request("GET", "/api/v1/nodes/node-01/config", { token: tokens.admin });
+      assert.ok("updatedBy" in (await res.json()).data);
+    });
+
+    test("GET device config with a wrong API key: 401", async () => {
+      const res = await request("GET", "/api/v1/device/config", { apiKey: generateApiKey() });
+      assert.equal(res.status, 401);
+      assert.equal((await res.json()).error.code, "unauthenticated");
+      assert.equal(stores.calls.length, 0);
+    });
+
+    test("GET device config without a key: 401", async () => {
+      const res = await request("GET", "/api/v1/device/config");
+      assert.equal(res.status, 401);
+      assert.equal((await res.json()).error.code, "unauthenticated");
+      assert.equal(stores.calls.length, 0);
+    });
+
+    test("GET device config with a user JWT: 401", async () => {
+      for (const token of [tokens.admin, tokens.viewerA]) {
+        const res = await request("GET", "/api/v1/device/config", { token });
+        assert.equal(res.status, 401);
+      }
+      assert.equal(stores.calls.length, 0);
+    });
+
+    test("GET device config with a user JWT placed in X-API-Key: 401", async () => {
+      const res = await request("GET", "/api/v1/device/config", { apiKey: tokens.admin });
+      assert.equal(res.status, 401);
+      assert.equal(stores.calls.length, 0);
+    });
+
+    test("node-01's key never receives node-02's config, whatever the request names", async () => {
+      const attempts = [
+        "/api/v1/device/config",
+        "/api/v1/device/config?nodeCode=node-02",
+        "/api/v1/device/config?node=node-02&nodeCode=node-02",
+      ];
+      for (const path of attempts) {
+        const res = await request("GET", path, { apiKey: KEYS["node-01"], headers: { "x-node-code": "node-02" } });
+        assert.equal(res.status, 200);
+        assert.equal((await res.json()).data.nodeCode, "node-01");
+      }
+      assert.deepEqual(
+        [...new Set(stores.calls.map((c) => c[1]))],
+        ["node-01"],
+        "the store was asked only about node-01",
+      );
+      const other = await request("GET", "/api/v1/device/config", { apiKey: KEYS["node-02"] });
+      assert.equal((await other.json()).data.nodeCode, "node-02");
+    });
+
+    test("an API key on GET /nodes/{nodeCode}/config is still a 401", async () => {
+      const res = await request("GET", "/api/v1/nodes/node-01/config", { apiKey: KEYS["node-01"] });
+      assert.equal(res.status, 401);
     });
 
     test("an API key on GET /nodes: 401", async () => {

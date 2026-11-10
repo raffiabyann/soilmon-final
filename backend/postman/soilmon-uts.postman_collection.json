@@ -640,6 +640,44 @@
               }
             }
           ]
+        },
+        {
+          "name": "Device ambil config",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{apiKeyNode01}}"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/v1/device/config",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "device",
+                "config"
+              ]
+            },
+            "description": "Perangkat membaca config node miliknya sendiri. Node ditentukan oleh API key, bukan oleh URL, jadi key node-01 hanya mendapat config node-01. Hanya membaca. Bentuk responsenya sama dengan GET /nodes/node-01/config tanpa field updatedBy; node yang belum pernah diatur mengembalikan nilai null."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"status 200\", () => pm.response.to.have.status(200));",
+                  "pm.test(\"config belongs to node-01\", () => pm.expect(pm.response.json().data.nodeCode).to.eql(\"node-01\"));",
+                  "pm.test(\"updatedBy is not exposed\", () => pm.expect(pm.response.json().data).to.not.have.property(\"updatedBy\"));"
+                ]
+              }
+            }
+          ]
         }
       ]
     },
