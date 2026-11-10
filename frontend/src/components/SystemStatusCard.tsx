@@ -1,18 +1,14 @@
 import { OFFLINE_AFTER_MINUTES, isOnline } from "@soilmon/shared";
 import type { LucideIcon } from "lucide-react";
-import { Clock, Router, Server, Wifi } from "lucide-react";
+import { Clock, Router, Server } from "lucide-react";
 import type { ReactNode } from "react";
-import { describeApiError, fetchNodes, type ApiNode } from "../lib/api";
+import { describeApiError, type ApiNode } from "../lib/api";
 import { formatAgo, formatDateTimeWib, formatTimeWib } from "../lib/time";
 import { useNow } from "../lib/useNow";
-import { usePolling } from "../lib/usePolling";
-import { MOCK_NOW, mockGateways } from "../mocks/data";
-import { Badge } from "./Badge";
+import { DASHBOARD_REFRESH_MS, type Polled } from "../lib/usePolling";
 import { Card } from "./Card";
 import { CardLabel } from "./CardLabel";
 import { FeedControls } from "./FeedControls";
-
-const REFRESH_MS = 10_000;
 
 /** Node yang paling baru mengirim, atau undefined kalau belum ada yang pernah mengirim. */
 function latestNode(nodes: ApiNode[]): ApiNode | undefined {
@@ -21,19 +17,24 @@ function latestNode(nodes: ApiNode[]): ApiNode | undefined {
     .sort((a, b) => (b.lastReceivedAt ?? "").localeCompare(a.lastReceivedAt ?? ""))[0];
 }
 
-/**
- * Status sistem. Backend, node, dan data terakhir dari GET /api/v1/nodes;
- * gateway dari mocks/ karena gateway belum mengirim ke backend.
- */
-export function SystemStatusCard() {
-  const nodes = usePolling(fetchNodes, "nodes", REFRESH_MS);
-  const now = useNow(REFRESH_MS);
+/** Keterangan di bawah badge koneksi; harus sejalan dengan badge di FeedControls. */
+function connectionHint(polled: Polled<unknown>): string {
+  if (polled.error) {
+    if (polled.data !== null) return "Pembaruan terakhir gagal, data di bawah bisa sudah lama";
+    const unreachable =
+      polled.error.code === "network_error" || polled.error.code === "backend_unreachable";
+    return unreachable ? "Backend tidak dapat dihubungi" : "API menjawab dengan error";
+  }
+  return polled.data === null ? "Menunggu jawaban API" : "API merespons, belum tentu node aktif";
+}
+
+/** Status sistem: koneksi backend, data terakhir, dan jumlah node aktif, semua dari GET /api/v1/nodes. */
+export function SystemStatusCard({ nodes }: { nodes: Polled<ApiNode[]> }) {
+  const now = useNow(DASHBOARD_REFRESH_MS);
   const list = nodes.data ?? [];
   const online = list.filter((n) => isOnline(n.lastReceivedAt, now));
   const offline = list.filter((n) => !isOnline(n.lastReceivedAt, now));
   const latest = latestNode(list);
-  const gateway = mockGateways[0];
-  const gatewayOnline = gateway ? isOnline(gateway.lastSeenAt, MOCK_NOW) : false;
   const latestStale = latest?.lastReceivedAt ? !isOnline(latest.lastReceivedAt, now) : false;
   // Backend menjawab, tetapi tidak satu pun node mengirim dalam batas waktu.
   const connectedButSilent =
@@ -41,12 +42,12 @@ export function SystemStatusCard() {
 
   return (
     <Card>
-      <div className="grid grid-cols-1 gap-y-6 sm:grid-cols-2 xl:grid-cols-4 xl:divide-x xl:divide-line">
+      <div className="grid grid-cols-1 gap-y-6 sm:grid-cols-2 xl:grid-cols-3 xl:divide-x xl:divide-line">
         <Tile icon={Server} label="Koneksi backend">
           <div className="mt-2.5">
             <FeedControls polled={nodes} />
           </div>
-          <Hint>API merespons, belum tentu node aktif</Hint>
+          <Hint>{connectionHint(nodes)}</Hint>
         </Tile>
 
         <Tile icon={Clock} label="Data terakhir diterima">
@@ -81,14 +82,6 @@ export function SystemStatusCard() {
                   : `${offline.map((n) => n.code).join(", ")} tidak mengirim > ${OFFLINE_AFTER_MINUTES} menit`}
           </Hint>
         </Tile>
-
-        <Tile icon={Wifi} label="Gateway" badge={<Badge tone="warning">Data contoh</Badge>}>
-          <Value>{gatewayOnline ? "Online" : "Offline"}</Value>
-          <Hint dot={gatewayOnline ? "bg-ok" : "bg-danger"}>
-            {gateway?.code ?? "-"} · sync{" "}
-            {gateway?.lastSeenAt ? formatTimeWib(gateway.lastSeenAt) : "-"}
-          </Hint>
-        </Tile>
       </div>
 
       {connectedButSilent && (
@@ -116,22 +109,17 @@ export function SystemStatusCard() {
 function Tile({
   icon: Icon,
   label,
-  badge,
   children,
 }: {
   icon: LucideIcon;
   label: string;
-  badge?: ReactNode;
   children: ReactNode;
 }) {
   return (
     <div className="min-w-0 xl:px-5 xl:first:pl-0 xl:last:pr-0">
-      <div className="flex flex-wrap items-center gap-2">
-        <CardLabel>
-          <Icon className="size-3.5" /> {label}
-        </CardLabel>
-        {badge}
-      </div>
+      <CardLabel>
+        <Icon className="size-3.5" /> {label}
+      </CardLabel>
       {children}
     </div>
   );

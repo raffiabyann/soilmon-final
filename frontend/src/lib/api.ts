@@ -22,6 +22,9 @@ export interface TelemetryRecord {
   batteryVoltage: number | null;
 }
 
+/** Label tujuh register di rawRegisters, urutan sama. Hanya nama kolom, bukan arti. */
+export const REGISTER_LABELS = ["R1", "R2", "R3", "R4", "R5", "R6", "R7"] as const;
+
 /** Satu field yang ditolak backend (error.details). */
 export interface ApiErrorDetail {
   field: string;

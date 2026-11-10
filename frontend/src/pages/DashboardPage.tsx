@@ -1,54 +1,41 @@
-import { Activity, BellRing, Gauge, MonitorCheck } from "lucide-react";
-import { ActiveAlertsCard } from "../components/ActiveAlertsCard";
-import { AlertCalendarCard } from "../components/AlertCalendarCard";
-import { ActivityLog } from "../components/ActivityLog";
-import { MetricSummaryCards } from "../components/MetricSummaryCards";
+import { Router as NodeIcon, MonitorCheck } from "lucide-react";
+import { NodeStatusCards } from "../components/NodeStatusCards";
 import { PageHeader } from "../components/PageHeader";
+import { RawRegisterNote } from "../components/RawRegisterNote";
 import { SectionHeader } from "../components/SectionHeader";
 import { SystemStatusCard } from "../components/SystemStatusCard";
-import { TrendSection } from "../components/TrendSection";
+import { fetchNodes } from "../lib/api";
 import { formatClockWib, formatLongDateWib } from "../lib/time";
 import { useNow } from "../lib/useNow";
+import { DASHBOARD_REFRESH_MS, usePolling } from "../lib/usePolling";
 
 /**
- * Dashboard: status sistem, ringkasan metrik, tren 24 jam, alert aktif, aktivitas terbaru.
- * Status backend, node, dan data terakhir dari API; bagian berlabel "Data contoh" dari mocks/.
+ * Dashboard: status sistem dan satu kartu per node. Semua dari API (GET /nodes dan
+ * GET /nodes/{node}/telemetry); register ditampilkan mentah karena belum dikalibrasi.
  */
 export function DashboardPage() {
   const now = useNow(30_000);
+  // GET /nodes hanya berisi node yang boleh dibaca pengguna ini; admin mendapat semuanya.
+  const nodes = usePolling(fetchNodes, "nodes", DASHBOARD_REFRESH_MS);
 
   return (
     <div className="space-y-8">
       <PageHeader
         title="Dashboard"
-        description="Kondisi kebun dan data yang masuk hari ini."
+        description="Status node dan paket data terakhir yang masuk."
         stat={formatClockWib(now)}
         statCaption={`WIB · ${formatLongDateWib(now)}`}
       />
 
       <section className="space-y-3">
         <SectionHeader icon={MonitorCheck} title="Status sistem" />
-        <SystemStatusCard />
+        <SystemStatusCard nodes={nodes} />
       </section>
 
       <section className="space-y-3">
-        <SectionHeader icon={Gauge} title="Kondisi terkini" mock />
-        <MetricSummaryCards />
-      </section>
-
-      <TrendSection />
-
-      <section className="space-y-3">
-        <SectionHeader icon={BellRing} title="Alert aktif" mock />
-        <div className="grid grid-cols-1 gap-5 xl:grid-cols-[1fr_400px]">
-          <ActiveAlertsCard />
-          <AlertCalendarCard />
-        </div>
-      </section>
-
-      <section className="space-y-3">
-        <SectionHeader icon={Activity} title="Aktivitas terbaru" mock />
-        <ActivityLog />
+        <SectionHeader icon={NodeIcon} title="Node" />
+        <RawRegisterNote />
+        <NodeStatusCards nodes={nodes} />
       </section>
     </div>
   );
