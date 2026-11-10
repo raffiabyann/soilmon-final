@@ -13,7 +13,9 @@
     "migrate": "node --env-file-if-exists=.env scripts/migrate.js",
     "migrate:plan": "node --env-file-if-exists=.env scripts/migrate.js --dry-run",
     "seed": "node --env-file-if-exists=.env scripts/seed.js",
-    "simulate": "node --env-file-if-exists=.env scripts/simulate.js"
+    "simulate": "node --env-file-if-exists=.env scripts/simulate.js",
+    "user:create": "node --env-file-if-exists=.env scripts/user-create.js",
+    "user:set-password": "node --env-file-if-exists=.env scripts/user-set-password.js"
   },
   "dependencies": {
     "bcrypt": "^6.0.0",

@@ -5,6 +5,10 @@ const LOGIN_FIELDS = new Set(["email", "password"]);
 // address that is not registered simply fails to sign in.
 const EMAIL_MAX_LENGTH = 254;
 
+export function isPlausibleEmail(value) {
+  return typeof value === "string" && value.length <= EMAIL_MAX_LENGTH && /^[^\s@]+@[^\s@]+$/.test(value);
+}
+
 function isPlainObject(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -24,11 +28,7 @@ export function validateLoginInput(body) {
 
   if (email === undefined) {
     errors.push({ field: "email", message: "is required" });
-  } else if (
-    typeof email !== "string" ||
-    email.length > EMAIL_MAX_LENGTH ||
-    !/^[^\s@]+@[^\s@]+$/.test(email)
-  ) {
+  } else if (!isPlausibleEmail(email)) {
     errors.push({ field: "email", message: `must be an email address of at most ${EMAIL_MAX_LENGTH} characters` });
   }
 
