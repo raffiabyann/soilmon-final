@@ -2,10 +2,7 @@ import type { ReactNode } from "react";
 import { Link } from "react-router";
 import { Card } from "./Card";
 
-/**
- * Isi halaman untuk fitur yang belum bisa dibuat. Menjelaskan sebabnya dan menunjuk ke halaman
- * yang sudah berisi data asli.
- */
+/** Isi halaman untuk fitur yang belum bisa dibuat; menunjuk ke Data History. */
 export function PendingFeature({ title, children }: { title: string; children: ReactNode }) {
   return (
     <Card className="max-w-2xl space-y-3">

@@ -1,7 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
-/** Judul bagian Dashboard. */
 export function SectionHeader({
   icon: Icon,
   title,

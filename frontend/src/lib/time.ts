@@ -84,9 +84,8 @@ export function formatClockWib(iso: string | Date): string {
 }
 
 /**
- * Nilai <input type="datetime-local"> ("2026-11-10T08:30") dibaca sebagai waktu WIB, bukan zona
- * browser, supaya sama dengan waktu yang ditampilkan. Mengembalikan ISO UTC, atau null kalau kosong
- * atau bukan format itu (browser sendiri tidak mengeluarkan tanggal yang tidak ada).
+ * Nilai <input type="datetime-local"> ("2026-11-10T08:30") dibaca sebagai WIB, bukan zona browser,
+ * supaya sama dengan waktu yang ditampilkan. Hasilnya ISO UTC, atau null kalau kosong.
  */
 export function wibInputToIso(value: string): string | null {
   if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(value)) return null;

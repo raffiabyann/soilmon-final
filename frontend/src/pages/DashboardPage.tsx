@@ -9,10 +9,7 @@ import { formatClockWib, formatLongDateWib } from "../lib/time";
 import { useNow } from "../lib/useNow";
 import { DASHBOARD_REFRESH_MS, usePolling } from "../lib/usePolling";
 
-/**
- * Dashboard: status sistem dan satu kartu per node. Semua dari API (GET /nodes dan
- * GET /nodes/{node}/telemetry); register ditampilkan mentah karena belum dikalibrasi.
- */
+/** Semua dari API; register ditampilkan mentah karena belum dikalibrasi. */
 export function DashboardPage() {
   const now = useNow(30_000);
   // GET /nodes hanya berisi node yang boleh dibaca pengguna ini; admin mendapat semuanya.

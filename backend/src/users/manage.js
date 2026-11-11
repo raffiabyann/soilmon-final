@@ -1,9 +1,8 @@
 import { PASSWORD_MAX_BYTES } from "../auth/passwords.js";
 import { isPlausibleEmail } from "../auth/validate.js";
 
-// Account management for the user:create and user:set-password scripts. Only the users and
-// user_nodes tables are written. device_credentials and telemetry_records are never touched, so a
-// password change cannot rotate a device key.
+// Only users and user_nodes are written. device_credentials and telemetry_records are never
+// touched, so a password change cannot rotate a device key.
 
 export const PASSWORD_MIN_LENGTH = 12;
 
@@ -68,7 +67,7 @@ export async function insertUser(db, { email, passwordHash, role, nodes }) {
   return id;
 }
 
-// Returns { id, role }, or null when no user has this email. Role and node assignments stay as they are.
+// Returns { id, role }, or null when no user has this email.
 export async function updatePassword(db, { email, passwordHash }) {
   const { rows } = await db.query(UPDATE_PASSWORD, [email, passwordHash]);
   return rows[0] ? { id: String(rows[0].id), role: rows[0].role } : null;

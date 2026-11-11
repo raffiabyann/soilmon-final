@@ -8,10 +8,7 @@ import { Badge } from "./Badge";
 import { Card } from "./Card";
 import { CardLabel } from "./CardLabel";
 
-/**
- * Satu kartu per node dari GET /api/v1/nodes: online atau offline, waktu paket terakhir, lalu
- * tegangan baterai dan register mentah dari paket terakhir (GET .../telemetry?limit=1).
- */
+/** Status dari GET /nodes; baterai dan register dari paket terakhir (telemetry?limit=1). */
 export function NodeStatusCards({ nodes }: { nodes: Polled<ApiNode[]> }) {
   const now = useNow(DASHBOARD_REFRESH_MS);
 

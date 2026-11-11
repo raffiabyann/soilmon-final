@@ -10,7 +10,7 @@ export function assertInteractive(input = process.stdin) {
   }
 }
 
-// Reads one line from the terminal without echoing it. Enter finishes; Ctrl-C and Ctrl-D cancel.
+// Enter finishes; Ctrl-C and Ctrl-D cancel.
 export function promptHidden(question, { input = process.stdin, output = process.stdout } = {}) {
   return new Promise((resolve, reject) => {
     try {

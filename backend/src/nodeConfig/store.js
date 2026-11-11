@@ -13,8 +13,7 @@ const GET_CONFIG = `
   WHERE n.id = $1
     AND ${canReadNode({ nodeId: "n.id", role: "$2", userId: "$3" })}`;
 
-// The device path. The node id comes from the verified API key, so there is no user and no
-// ownership condition: the key already is the proof of ownership.
+// Device path: the node id comes from the verified API key, so there is no ownership condition.
 const GET_DEVICE_CONFIG = `
   SELECT c.moisture_threshold, c.pump_duration_sec, c.updated_by, c.updated_at
   FROM nodes n
@@ -63,8 +62,8 @@ export function createNodeConfigStore(db) {
       return { access, config: toConfig(rows[0], nodeCode) };
     },
 
-    // device is { nodeId, nodeCode } from requireDeviceKey. Returns { access, config }; access is
-    // "missing" only if the node was deleted while its key was still active.
+    // device is { nodeId, nodeCode } from requireDeviceKey. access is "missing" only if the node
+    // was deleted while its key was still active.
     async getDeviceConfig(device) {
       const { rows } = await query(GET_DEVICE_CONFIG, [device.nodeId]);
       if (rows.length === 0) return { access: ACCESS.MISSING };

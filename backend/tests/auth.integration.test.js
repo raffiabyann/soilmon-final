@@ -300,7 +300,6 @@ describe("authorisation against PostgreSQL", () => {
         const bBody = (await b.json()).data;
         assert.equal(bBody.nodeCode, "itest-b");
         assert.equal(bBody.pumpDurationSec, 45);
-        // The admin who made the change is not shown to the device.
         assert.equal("updatedBy" in bBody, false);
 
         assert.equal((await read(keys.revoked)).status, 401);

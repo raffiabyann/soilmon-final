@@ -22,7 +22,6 @@ import { useLoad } from "../lib/useLoad";
 const PAGE_LIMIT = 50;
 const REGISTER_COUNT = REGISTER_LABELS.length;
 
-/** Data History: satu baris = satu paket telemetry dari node, dibaca dari backend. */
 export function HistoryPage() {
   const [params, setParams] = useSearchParams();
   const [fromText, setFromText] = useState("");
@@ -129,9 +128,8 @@ export function HistoryPage() {
 }
 
 /**
- * Halaman pertama dimuat lewat useLoad. "Muat lebih lama" meminta halaman berikutnya dengan `to`
- * tepat setelah paket paling lama yang sudah tampil, karena backend tidak punya kursor.
- * Komponen ini dipasang ulang (key) setiap node atau rentang berubah, jadi daftarnya mulai dari nol.
+ * "Muat lebih lama" meminta halaman berikutnya dengan `to` tepat setelah paket paling lama yang
+ * tampil (backend tidak punya kursor). Dipasang ulang (key) tiap node atau rentang berubah.
  */
 function HistoryResults({
   node,

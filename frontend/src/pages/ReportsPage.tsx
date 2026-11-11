@@ -1,7 +1,7 @@
 import { PageHeader } from "../components/PageHeader";
 import { PendingFeature } from "../components/PendingFeature";
 
-/** Reports: menunggu mapping register dan kalibrasi dari tim hardware. Tidak ada data di halaman ini. */
+/** Menunggu mapping register dan kalibrasi dari tim hardware. */
 export function ReportsPage() {
   return (
     <div className="space-y-5">

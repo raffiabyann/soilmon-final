@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError } from "./api";
 
-/** Selang pembaruan data Dashboard. */
 export const DASHBOARD_REFRESH_MS = 10_000;
 
 export interface Polled<T> {

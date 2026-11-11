@@ -1,5 +1,5 @@
 // Creates a dashboard user. Usage: npm run user:create -- --email <email> --role <admin|viewer> [--node node-01 ...]
-// Needs a migrated database. The password is typed in the terminal and is never printed or stored in plain text.
+// Needs a migrated database. The password is typed in the terminal.
 import { ConfigError, loadConfig } from "../src/config/env.js";
 import { closePool, getPool } from "../src/db/pool.js";
 import { UserCommandError } from "../src/users/manage.js";

@@ -1,8 +1,8 @@
 // Runs only when TEST_DATABASE_URL points at a dedicated, migrated PostgreSQL test database
 // (see tests/helpers/testDatabase.js). Every test runs inside a transaction that is rolled back.
 //
-// These tests prove what the fake client in users.cli.test.js cannot: that the SQL works, and that
-// creating a user or changing a password leaves device keys and telemetry exactly as they were.
+// Proves what the fake client in users.cli.test.js cannot: that the SQL works, and that device
+// keys, telemetry and config stay as they were.
 import { after, before, beforeEach, afterEach, describe, test } from "node:test";
 import assert from "node:assert/strict";
 import { loadConfig } from "../src/config/env.js";
