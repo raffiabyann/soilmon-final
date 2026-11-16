@@ -68,8 +68,9 @@ describe("simulator payload", () => {
 });
 
 describe("simulator arguments", () => {
-  test("defaults to node-01 on localhost every 10 seconds", () => {
+  test("defaults to node-01 on 127.0.0.1 every 10 seconds", () => {
     assert.deepEqual(parseArgs([]), { options: { ...DEFAULTS, nodes: ["node-01"] }, errors: [] });
+    assert.equal(DEFAULTS.url, "http://127.0.0.1:3000");
   });
 
   test("accepts repeated and comma-separated nodes, interval, count and url", () => {

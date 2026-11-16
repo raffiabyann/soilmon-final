@@ -1,5 +1,5 @@
 // Sends simulated telemetry to the backend, the way the gateway will. Usage:
-//   npm run simulate -- [--node node-01,node-02] [--interval 10] [--count 5] [--url http://localhost:3000]
+//   npm run simulate -- [--node node-01,node-02] [--interval 10] [--count 5] [--url http://127.0.0.1:3000]
 //                       [--no-battery] [--seq]
 // --no-battery sends no batteryVoltage, like the current gateway. --seq adds a per-node counter.
 // It only talks to the HTTP API; it never opens a database connection. Each node needs its device

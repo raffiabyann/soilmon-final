@@ -31,8 +31,9 @@ if (!config.jwtSecret) {
   console.warn("JWT_SECRET is not set; login and endpoints for signed-in users will respond 503.");
 }
 
-const server = createApp({ ...stores, jwtSecret: config.jwtSecret }).listen(config.port, () => {
-  console.log(`SoilMon backend listening on port ${config.port} (${config.nodeEnv})`);
+const app = createApp({ ...stores, jwtSecret: config.jwtSecret });
+const server = app.listen(config.port, config.host, () => {
+  console.log(`SoilMon backend listening on ${config.host}:${config.port} (${config.nodeEnv})`);
 });
 
 server.on("error", (err) => {

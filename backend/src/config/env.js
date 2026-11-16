@@ -1,10 +1,25 @@
-const NODE_ENVS = ["development", "test", "production"];
+import { isIP } from "node:net";
+
+const NODE_ENVS =["development", "test", "production"];
 
 export class ConfigError extends Error {
   constructor(message) {
     super(message);
     this.name = "ConfigError";
   }
+}
+
+// Loopback by default, so a server started without HOST is not reachable from the network.
+export const DEFAULT_HOST = "127.0.0.1";
+
+const HOSTNAME = /^(?=.{1,253}$)[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)*$/;
+
+function parseHost(value) {
+  if (value === undefined || value === "") return DEFAULT_HOST;
+  if (isIP(value) === 0 && !HOSTNAME.test(value)) {
+    throw new ConfigError(`HOST must be an IP address or a hostname, got "${value}".`);
+  }
+  return value;
 }
 
 function parsePort(value) {
@@ -54,6 +69,7 @@ function parseJwtSecret(value) {
 
 export function loadConfig(env = process.env) {
   return Object.freeze({
+    host: parseHost(env.HOST),
     port: parsePort(env.PORT),
     nodeEnv: parseNodeEnv(env.NODE_ENV),
     databaseUrl: parseDatabaseUrl(env.DATABASE_URL),

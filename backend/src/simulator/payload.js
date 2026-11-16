@@ -11,7 +11,8 @@ export const BASE_REGISTERS = Object.freeze([512, 268, 1200, 65, 30, 12, 45]);
 export const BASE_BATTERY_VOLTAGE = 3.31;
 
 export const DEFAULTS = Object.freeze({
-  url: "http://localhost:3000",
+  // Not localhost: Node may resolve it to ::1, and the backend listens on 127.0.0.1 by default.
+  url: "http://127.0.0.1:3000",
   nodes: ["node-01"],
   intervalSeconds: 10,
   count: null,

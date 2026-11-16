@@ -5,6 +5,7 @@ import { ConfigError, JWT_SECRET_MIN_LENGTH, loadConfig } from "../src/config/en
 describe("loadConfig", () => {
   test("applies defaults when variables are unset", () => {
     assert.deepEqual(loadConfig({}), {
+      host: "127.0.0.1",
       port: 3000,
       nodeEnv: "development",
       databaseUrl: null,
@@ -22,6 +23,23 @@ describe("loadConfig", () => {
     assert.equal(config.nodeEnv, "production");
     assert.equal(config.databaseUrl, "postgresql://user:pw@localhost:5432/soilmon");
   });
+
+  test("HOST defaults to loopback, also when set to an empty string", () => {
+    assert.equal(loadConfig({}).host, "127.0.0.1");
+    assert.equal(loadConfig({ HOST: "" }).host, "127.0.0.1");
+  });
+
+  for (const host of ["0.0.0.0", "127.0.0.1", "192.168.1.20", "::", "::1", "localhost", "soilmon-api.local"]) {
+    test(`accepts HOST=${host}`, () => {
+      assert.equal(loadConfig({ HOST: host }).host, host);
+    });
+  }
+
+  for (const host of [" ", " 0.0.0.0", "0.0.0.0 ", "http://0.0.0.0", "0.0.0.0:3000", "[::1]", "-bad.local", "a b"]) {
+    test(`rejects HOST=${JSON.stringify(host)}`, () => {
+      assert.throws(() => loadConfig({ HOST: host }), ConfigError);
+    });
+  }
 
   for (const port of ["1", "65535"]) {
     test(`accepts boundary PORT=${port}`, () => {
