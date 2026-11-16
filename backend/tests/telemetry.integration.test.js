@@ -41,13 +41,13 @@ describe("telemetry store against PostgreSQL", () => {
   test("inserts for a registered node and lists newest first", { skip }, () =>
     inRollback(async (store) => {
       await client.query("INSERT INTO nodes (code) VALUES ($1)", ["itest-node"]);
-      const first = await store.insertRecord({
+      const { record: first } = await store.insertRecord({
         nodeCode: "itest-node",
         rawRegisters: [0, 1, 2, 3, 4, 5, 65535],
         batteryVoltage: 3.31,
         measuredAt: new Date("2026-10-20T05:12:00Z"),
       });
-      const second = await store.insertRecord({
+      const { record: second } = await store.insertRecord({
         nodeCode: "itest-node",
         rawRegisters: [7, 7, 7, 7, 7, 7, 7],
         batteryVoltage: null,
@@ -68,7 +68,7 @@ describe("telemetry store against PostgreSQL", () => {
   test("lists nodes with the time of their newest record", { skip }, () =>
     inRollback(async (store) => {
       await client.query("INSERT INTO nodes (code) VALUES ($1), ($2)", ["itest-a", "itest-b"]);
-      const record = await store.insertRecord({
+      const { record } = await store.insertRecord({
         nodeCode: "itest-a",
         rawRegisters: [1, 2, 3, 4, 5, 6, 7],
         batteryVoltage: null,
@@ -104,12 +104,84 @@ describe("telemetry store against PostgreSQL", () => {
       await client.query("SAVEPOINT bad_insert");
       await assert.rejects(
         client.query(
-          `INSERT INTO telemetry_records (node_id, raw_registers)
-           SELECT id, $2::integer[] FROM nodes WHERE code = $1`,
-          ["itest-node", [1, 2, 3, 4, 5, 6, 70000]],
+          `INSERT INTO telemetry_records (node_id, r1, r2, r3, r4, r5, r6, r7)
+           SELECT id, 1, 2, 3, 4, 5, 6, $2::integer FROM nodes WHERE code = $1`,
+          ["itest-node", 70000],
         ),
         (err) => err.code === "23514",
       );
       await client.query("ROLLBACK TO SAVEPOINT bad_insert");
+    }));
+
+  // Each test's transaction fixes now(), so "10 minutes ago" is moved by editing received_at.
+  async function insertSeq(store, nodeCode, seq) {
+    return store.insertRecord({
+      nodeCode,
+      rawRegisters: [1, 2, 3, 4, 5, 6, 7],
+      batteryVoltage: null,
+      measuredAt: null,
+      seq,
+    });
+  }
+
+  async function countFor(nodeCode) {
+    const { rows } = await client.query(
+      "SELECT count(*)::int AS n FROM telemetry_records t JOIN nodes n ON n.id = t.node_id WHERE n.code = $1",
+      [nodeCode],
+    );
+    return rows[0].n;
+  }
+
+  test("the same node and seq within 10 minutes is stored once and reported as a duplicate", { skip }, () =>
+    inRollback(async (store) => {
+      await client.query("INSERT INTO nodes (code) VALUES ('itest-seq')");
+      const first = await insertSeq(store, "itest-seq", 300);
+      const again = await insertSeq(store, "itest-seq", 300);
+      assert.equal(first.duplicate, false);
+      assert.equal(first.record.seq, 300);
+      assert.equal(again.duplicate, true);
+      assert.equal(again.record.id, first.record.id);
+      assert.equal(await countFor("itest-seq"), 1);
+    }));
+
+  test("the same seq is stored again once the earlier record is older than 10 minutes", { skip }, () =>
+    inRollback(async (store) => {
+      await client.query("INSERT INTO nodes (code) VALUES ('itest-seq')");
+      const first = await insertSeq(store, "itest-seq", 0);
+      await client.query("UPDATE telemetry_records SET received_at = now() - interval '11 minutes' WHERE id = $1", [
+        first.record.id,
+      ]);
+      const after = await insertSeq(store, "itest-seq", 0);
+      assert.equal(after.duplicate, false);
+      assert.notEqual(after.record.id, first.record.id);
+      assert.equal(await countFor("itest-seq"), 2);
+    }));
+
+  test("the same seq from another node, or no seq at all, is never a duplicate", { skip }, () =>
+    inRollback(async (store) => {
+      await client.query("INSERT INTO nodes (code) VALUES ('itest-seq-a'), ('itest-seq-b')");
+      assert.equal((await insertSeq(store, "itest-seq-a", 9)).duplicate, false);
+      assert.equal((await insertSeq(store, "itest-seq-b", 9)).duplicate, false);
+      assert.equal((await insertSeq(store, "itest-seq-a", null)).duplicate, false);
+      assert.equal((await insertSeq(store, "itest-seq-a", null)).duplicate, false);
+      assert.equal(await countFor("itest-seq-a"), 3);
+      assert.equal(await countFor("itest-seq-b"), 1);
+    }));
+
+  test("the database rejects seq outside 0..65535", { skip }, () =>
+    inRollback(async () => {
+      await client.query("INSERT INTO nodes (code) VALUES ('itest-seq')");
+      for (const seq of [-1, 65536]) {
+        await client.query("SAVEPOINT bad_seq");
+        await assert.rejects(
+          client.query(
+            `INSERT INTO telemetry_records (node_id, r1, r2, r3, r4, r5, r6, r7, seq)
+             SELECT id, 1, 2, 3, 4, 5, 6, 7, $2::integer FROM nodes WHERE code = $1`,
+            ["itest-seq", seq],
+          ),
+          (err) => err.code === "23514",
+        );
+        await client.query("ROLLBACK TO SAVEPOINT bad_seq");
+      }
     }));
 });

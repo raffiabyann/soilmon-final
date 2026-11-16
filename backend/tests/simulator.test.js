@@ -6,6 +6,7 @@ import {
   buildPayload,
   nextBatteryVoltage,
   nextRegisters,
+  nextSeq,
   parseApiKeys,
   parseArgs,
 } from "../src/simulator/payload.js";
@@ -19,7 +20,8 @@ describe("simulator payload", () => {
     for (let i = 0; i < 500; i += 1) {
       registers = nextRegisters(registers);
       battery = nextBatteryVoltage(battery);
-      const { errors } = validateTelemetryInput(buildPayload("node-01", registers, battery));
+      const payload = buildPayload("node-01", registers, { batteryVoltage: battery, seq: i });
+      const { errors } = validateTelemetryInput(payload);
       assert.deepEqual(errors, []);
     }
   });
@@ -36,12 +38,32 @@ describe("simulator payload", () => {
     assert.equal(nextBatteryVoltage(3.31, () => 0.5), 3.31);
   });
 
-  test("payloads carry no measuredAt, like the prototype gateway", () => {
-    assert.deepEqual(Object.keys(buildPayload("node-01", BASE_REGISTERS, 3.31)), [
+  test("payloads carry no measuredAt, like the gateway", () => {
+    assert.deepEqual(Object.keys(buildPayload("node-01", BASE_REGISTERS, { batteryVoltage: 3.31 })), [
       "nodeCode",
       "rawRegisters",
       "batteryVoltage",
     ]);
+  });
+
+  test("without battery or seq the payload is exactly the gateway's JSON, and it validates", () => {
+    const payload = buildPayload("node-01", [...BASE_REGISTERS]);
+    assert.deepEqual(payload, { nodeCode: "node-01", rawRegisters: [...BASE_REGISTERS] });
+    assert.deepEqual(validateTelemetryInput(payload).errors, []);
+  });
+
+  test("seq is included when given, including 0", () => {
+    assert.deepEqual(buildPayload("node-01", BASE_REGISTERS, { seq: 0 }), {
+      nodeCode: "node-01",
+      rawRegisters: BASE_REGISTERS,
+      seq: 0,
+    });
+  });
+
+  test("seq counts up and wraps after 65535 like the node's 16-bit counter", () => {
+    assert.equal(nextSeq(0), 1);
+    assert.equal(nextSeq(65534), 65535);
+    assert.equal(nextSeq(65535), 0);
   });
 });
 
@@ -69,7 +91,16 @@ describe("simulator arguments", () => {
       nodes: ["node-01", "node-02", "node-03"],
       intervalSeconds: 5,
       count: 3,
+      battery: true,
+      seq: false,
     });
+  });
+
+  test("--no-battery and --seq", () => {
+    const { options, errors } = parseArgs(["--no-battery", "--seq"]);
+    assert.deepEqual(errors, []);
+    assert.equal(options.battery, false);
+    assert.equal(options.seq, true);
   });
 
   test("reports bad values instead of guessing", () => {

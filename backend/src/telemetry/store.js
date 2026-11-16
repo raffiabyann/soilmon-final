@@ -1,5 +1,8 @@
+import pg from "pg";
 import { ACCESS, canReadNode, findNodeAccess } from "../auth/access.js";
 import { createQuery } from "../db/query.js";
+import { isDatabaseUnavailable } from "../db/errors.js";
+import { ApiError } from "../middleware/errors.js";
 
 // Every value is passed as a parameter; the SQL text never contains request data.
 //
@@ -8,18 +11,43 @@ import { createQuery } from "../db/query.js";
 // query that repeats the ownership condition, so it returns nothing to a caller without access
 // even if the first check were skipped.
 
+// Registers are stored as r1..r7 (migration 004) but read and written as one array, so the API
+// keeps its rawRegisters shape.
+const RECORD_COLUMNS = `
+  id, received_at, measured_at, ARRAY[r1, r2, r3, r4, r5, r6, r7] AS raw_registers,
+  battery_voltage, seq`;
+
 // Inserts only when the node is registered: an unknown nodeCode inserts nothing.
 const INSERT_RECORD = `
-  INSERT INTO telemetry_records (node_id, measured_at, raw_registers, battery_voltage)
-  SELECT id, $2::timestamptz, $3::integer[], $4::double precision
+  INSERT INTO telemetry_records
+    (node_id, measured_at, r1, r2, r3, r4, r5, r6, r7, battery_voltage, seq)
+  SELECT id, $2::timestamptz,
+    ($3::integer[])[1], ($3::integer[])[2], ($3::integer[])[3], ($3::integer[])[4],
+    ($3::integer[])[5], ($3::integer[])[6], ($3::integer[])[7],
+    $4::double precision, $5::integer
   FROM nodes
   WHERE code = $1::text
-  RETURNING id, received_at, measured_at, raw_registers, battery_voltage`;
+  RETURNING ${RECORD_COLUMNS}`;
+
+// Two-key form, so it cannot collide with the migration runner's single-key lock.
+export const SEQ_LOCK_CLASS = 7391002;
+export const DUPLICATE_WINDOW_MINUTES = 10;
+
+const FIND_NODE_ID = "SELECT id FROM nodes WHERE code = $1::text";
+// Folding the id into int4 can only make two nodes share a lock, never skip one.
+const LOCK_NODE = `SELECT pg_advisory_xact_lock(${SEQ_LOCK_CLASS}, ($1::bigint % 2147483647)::integer)`;
+const FIND_DUPLICATE = `
+  SELECT ${RECORD_COLUMNS}
+  FROM telemetry_records
+  WHERE node_id = $1 AND seq = $2::integer
+    AND received_at > now() - interval '${DUPLICATE_WINDOW_MINUTES} minutes'
+  ORDER BY received_at DESC, id DESC
+  LIMIT 1`;
 
 // The table is named in full: inside canReadNode's subquery an unqualified node_id would
 // resolve to user_nodes.node_id.
 const LIST_RECORDS = `
-  SELECT id, received_at, measured_at, raw_registers, battery_voltage
+  SELECT ${RECORD_COLUMNS}
   FROM telemetry_records
   WHERE node_id = $1
     AND ${canReadNode({ nodeId: "telemetry_records.node_id", role: "$5", userId: "$6" })}
@@ -60,7 +88,36 @@ function toRecord(row, nodeCode) {
     measuredAt: row.measured_at ? row.measured_at.toISOString() : null,
     rawRegisters: row.raw_registers,
     batteryVoltage: row.battery_voltage,
+    seq: row.seq ?? null,
   };
+}
+
+// The duplicate check and the insert must see each other across concurrent deliveries, so they
+// run in one transaction behind a per-node lock. Given a Pool, a connection is checked out for
+// it; given a single client (the tests), the caller's transaction is used.
+async function withTransaction(db, work) {
+  if (!(db instanceof pg.Pool)) return work(createQuery(db));
+  let client;
+  try {
+    client = await db.connect();
+  } catch (err) {
+    if (isDatabaseUnavailable(err)) {
+      throw new ApiError(503, "database_unavailable", "The database is not available.");
+    }
+    throw err;
+  }
+  const query = createQuery(client);
+  try {
+    await query("BEGIN");
+    const result = await work(query);
+    await query("COMMIT");
+    return result;
+  } catch (err) {
+    await client.query("ROLLBACK").catch(() => {});
+    throw err;
+  } finally {
+    client.release();
+  }
 }
 
 // db is anything with pg's query(text, params) method: a Pool, a Client or a test double.
@@ -84,15 +141,27 @@ export function createTelemetryStore(db) {
       return { access, node: toNode(rows[0]) };
     },
 
-    // Returns the stored record, or null when nodeCode is not a registered node.
-    async insertRecord({ nodeCode, rawRegisters, batteryVoltage, measuredAt }) {
-      const { rows } = await query(INSERT_RECORD, [
-        nodeCode,
-        measuredAt,
-        rawRegisters,
-        batteryVoltage,
-      ]);
-      return rows.length > 0 ? toRecord(rows[0], nodeCode) : null;
+    // Returns { record, duplicate }, or null when nodeCode is not a registered node.
+    // With a seq, the same node and seq within DUPLICATE_WINDOW_MINUTES is not stored again:
+    // the earlier record is returned with duplicate: true.
+    async insertRecord({ nodeCode, rawRegisters, batteryVoltage, measuredAt, seq = null }) {
+      const params = [nodeCode, measuredAt, rawRegisters, batteryVoltage, seq];
+      if (seq === null) {
+        const { rows } = await query(INSERT_RECORD, params);
+        return rows.length > 0 ? { record: toRecord(rows[0], nodeCode), duplicate: false } : null;
+      }
+      return withTransaction(db, async (tx) => {
+        const node = await tx(FIND_NODE_ID, [nodeCode]);
+        if (node.rows.length === 0) return null;
+        const nodeId = node.rows[0].id;
+        await tx(LOCK_NODE, [nodeId]);
+        const earlier = await tx(FIND_DUPLICATE, [nodeId, seq]);
+        if (earlier.rows.length > 0) {
+          return { record: toRecord(earlier.rows[0], nodeCode), duplicate: true };
+        }
+        const { rows } = await tx(INSERT_RECORD, params);
+        return rows.length > 0 ? { record: toRecord(rows[0], nodeCode), duplicate: false } : null;
+      });
     },
 
     // Returns { access, records }: the node's records, newest first, when access is granted.

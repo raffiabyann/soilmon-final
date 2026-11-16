@@ -3,6 +3,8 @@
 
 export const RAW_REGISTER_COUNT = 7;
 export const RAW_REGISTER_MAX = 65535;
+// The node's packet counter is 16-bit and restarts at 0 when the node reboots.
+export const SEQ_MAX = 65535;
 export const HISTORY_DEFAULT_LIMIT = 50;
 export const HISTORY_MAX_LIMIT = 500;
 
@@ -12,7 +14,7 @@ const NODE_CODE = /^[A-Za-z0-9_-]{1,64}$/;
 const TIMESTAMP =
   /^(\d{4})-(0[1-9]|1[0-2])-(0[1-9]|[12]\d|3[01])T([01]\d|2[0-3]):([0-5]\d):([0-5]\d)(\.\d{1,9})?(Z|[+-](?:[01]\d|2[0-3]):[0-5]\d)$/;
 
-const TELEMETRY_FIELDS = new Set(["nodeCode", "rawRegisters", "batteryVoltage", "measuredAt"]);
+const TELEMETRY_FIELDS = new Set(["nodeCode", "rawRegisters", "batteryVoltage", "measuredAt", "seq"]);
 const HISTORY_PARAMS = new Set(["limit", "from", "to"]);
 
 export function isValidNodeCode(value) {
@@ -47,7 +49,7 @@ export function validateTelemetryInput(body) {
     if (!TELEMETRY_FIELDS.has(key)) errors.push({ field: key, message: "is not allowed" });
   }
 
-  const { nodeCode, rawRegisters, batteryVoltage, measuredAt } = body;
+  const { nodeCode, rawRegisters, batteryVoltage, measuredAt, seq } = body;
 
   if (nodeCode === undefined) {
     errors.push({ field: "nodeCode", message: "is required" });
@@ -88,6 +90,10 @@ export function validateTelemetryInput(body) {
     });
   }
 
+  if (seq !== undefined && seq !== null && !(Number.isInteger(seq) && seq >= 0 && seq <= SEQ_MAX)) {
+    errors.push({ field: "seq", message: `must be an integer from 0 to ${SEQ_MAX}, or null` });
+  }
+
   let measuredDate = null;
   if (measuredAt !== undefined && measuredAt !== null) {
     measuredDate = parseTimestamp(measuredAt);
@@ -106,6 +112,7 @@ export function validateTelemetryInput(body) {
       rawRegisters: [...rawRegisters],
       batteryVoltage: batteryVoltage ?? null,
       measuredAt: measuredDate,
+      seq: seq ?? null,
     },
     errors,
   };

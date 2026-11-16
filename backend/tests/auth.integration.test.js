@@ -78,7 +78,9 @@ describe("authorisation against PostgreSQL", () => {
       [hashApiKey(keys["itest-a"]), nodeId["itest-a"], hashApiKey(keys["itest-b"]), nodeId["itest-b"], hashApiKey(keys.revoked)],
     );
     await client.query(
-      `INSERT INTO telemetry_records (node_id, raw_registers) VALUES ($1, $3::integer[]), ($2, $3::integer[])`,
+      `INSERT INTO telemetry_records (node_id, r1, r2, r3, r4, r5, r6, r7)
+       SELECT n, r[1], r[2], r[3], r[4], r[5], r[6], r[7]
+       FROM unnest(ARRAY[$1::bigint, $2::bigint]) AS n, (SELECT $3::integer[] AS r) AS regs`,
       [nodeId["itest-a"], nodeId["itest-b"], REGISTERS],
     );
 

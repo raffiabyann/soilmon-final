@@ -1,6 +1,7 @@
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
-import { createTelemetryStore } from "../src/telemetry/store.js";
+import pg from "pg";
+import { DUPLICATE_WINDOW_MINUTES, createTelemetryStore } from "../src/telemetry/store.js";
 import { ApiError } from "../src/middleware/errors.js";
 
 // Records each query and answers with the queued results in order.
@@ -35,7 +36,7 @@ describe("telemetry store: insertRecord", () => {
   test("sends every value as a parameter and maps the row to camelCase", async () => {
     const db = fakeDb({ rows: [ROW] });
     const measuredAt = new Date("2026-10-20T05:12:00Z");
-    const record = await createTelemetryStore(db).insertRecord({
+    const result = await createTelemetryStore(db).insertRecord({
       nodeCode: "node-01",
       rawRegisters: [1, 2, 3, 4, 5, 6, 7],
       batteryVoltage: 3.31,
@@ -43,16 +44,34 @@ describe("telemetry store: insertRecord", () => {
     });
 
     assert.equal(db.calls.length, 1);
-    assert.deepEqual(db.calls[0].params, ["node-01", measuredAt, [1, 2, 3, 4, 5, 6, 7], 3.31]);
+    assert.deepEqual(db.calls[0].params, ["node-01", measuredAt, [1, 2, 3, 4, 5, 6, 7], 3.31, null]);
     assert.match(db.calls[0].text, /\$1::text/);
-    assert.deepEqual(record, {
+    assert.equal(result.duplicate, false);
+    assert.deepEqual(result.record, {
       id: "17",
       nodeCode: "node-01",
       receivedAt: "2026-10-20T05:12:30.000Z",
       measuredAt: null,
       rawRegisters: [1, 2, 3, 4, 5, 6, 7],
       batteryVoltage: 3.31,
+      seq: null,
     });
+  });
+
+  test("writes the registers into r1..r7 and reads them back as one array", async () => {
+    const db = fakeDb({ rows: [ROW] });
+    await createTelemetryStore(db).insertRecord({
+      nodeCode: "node-01",
+      rawRegisters: [1, 2, 3, 4, 5, 6, 7],
+      batteryVoltage: null,
+      measuredAt: null,
+    });
+    const { text } = db.calls[0];
+    assert.match(text, /\(node_id, measured_at, r1, r2, r3, r4, r5, r6, r7, battery_voltage, seq\)/);
+    assert.match(text, /\(\$3::integer\[\]\)\[7\]/);
+    assert.match(text, /ARRAY\[r1, r2, r3, r4, r5, r6, r7\] AS raw_registers/);
+    // Nothing is written to the old array column; it exists only as the read alias.
+    assert.doesNotMatch(text.split("RETURNING")[0], /raw_registers/);
   });
 
   test("never places request values in the SQL text", async () => {
@@ -81,13 +100,92 @@ describe("telemetry store: insertRecord", () => {
 
   test("converts measured_at to an ISO string", async () => {
     const db = fakeDb({ rows: [{ ...ROW, measured_at: new Date("2026-10-20T05:12:00Z") }] });
-    const record = await createTelemetryStore(db).insertRecord({
+    const { record } = await createTelemetryStore(db).insertRecord({
       nodeCode: "n1",
       rawRegisters: [1, 2, 3, 4, 5, 6, 7],
       batteryVoltage: null,
       measuredAt: new Date("2026-10-20T05:12:00Z"),
     });
     assert.equal(record.measuredAt, "2026-10-20T05:12:00.000Z");
+  });
+});
+
+const WITH_SEQ = {
+  nodeCode: "node-01",
+  rawRegisters: [1, 2, 3, 4, 5, 6, 7],
+  batteryVoltage: null,
+  measuredAt: null,
+  seq: 42,
+};
+
+describe("telemetry store: insertRecord with seq", () => {
+  test("looks up the node, locks it, finds no duplicate, then inserts", async () => {
+    const db = fakeDb({ rows: [{ id: "9" }] }, { rows: [{}] }, { rows: [] }, { rows: [{ ...ROW, seq: 42 }] });
+    const result = await createTelemetryStore(db).insertRecord(WITH_SEQ);
+
+    assert.deepEqual(result, { record: { ...result.record, seq: 42 }, duplicate: false });
+    const [node, lock, dup, insert] = db.calls;
+    assert.deepEqual(node.params, ["node-01"]);
+    assert.match(lock.text, /pg_advisory_xact_lock\(\d+, /);
+    assert.deepEqual(lock.params, ["9"]);
+    assert.deepEqual(dup.params, ["9", 42]);
+    assert.ok(dup.text.includes(`now() - interval '${DUPLICATE_WINDOW_MINUTES} minutes'`), dup.text);
+    assert.equal(DUPLICATE_WINDOW_MINUTES, 10);
+    assert.deepEqual(insert.params, ["node-01", null, [1, 2, 3, 4, 5, 6, 7], null, 42]);
+  });
+
+  test("returns the earlier record as a duplicate and does not insert", async () => {
+    const earlier = { ...ROW, id: "5", seq: 42 };
+    const db = fakeDb({ rows: [{ id: "9" }] }, { rows: [{}] }, { rows: [earlier] });
+    const result = await createTelemetryStore(db).insertRecord(WITH_SEQ);
+    assert.equal(result.duplicate, true);
+    assert.equal(result.record.id, "5");
+    assert.equal(db.calls.length, 3);
+    assert.ok(!db.calls.some((c) => /INSERT/.test(c.text)));
+  });
+
+  test("an unknown node returns null without locking", async () => {
+    const db = fakeDb({ rows: [] });
+    assert.equal(await createTelemetryStore(db).insertRecord(WITH_SEQ), null);
+    assert.equal(db.calls.length, 1);
+  });
+
+  test("given a Pool, it uses one checked-out connection in a transaction and releases it", async () => {
+    const conn = fakeDb({ rows: [] }, { rows: [{ id: "9" }] }, { rows: [{}] }, { rows: [] }, { rows: [ROW] }, { rows: [] });
+    let released = 0;
+    conn.release = () => (released += 1);
+    const pool = Object.create(pg.Pool.prototype);
+    pool.connect = async () => conn;
+    pool.query = () => assert.fail("the pool itself must not be queried");
+
+    const result = await createTelemetryStore(pool).insertRecord(WITH_SEQ);
+    assert.equal(result.duplicate, false);
+    const texts = conn.calls.map((c) => c.text.trim().split(/\s+/)[0]);
+    assert.deepEqual(texts, ["BEGIN", "SELECT", "SELECT", "SELECT", "INSERT", "COMMIT"]);
+    assert.equal(released, 1);
+  });
+
+  test("given a Pool, a failure rolls back and still releases the connection", async () => {
+    const conn = fakeDb({ rows: [] }, { rows: [{ id: "9" }] }, new Error("lock failed"), { rows: [] });
+    let released = 0;
+    conn.release = () => (released += 1);
+    const pool = Object.create(pg.Pool.prototype);
+    pool.connect = async () => conn;
+
+    await assert.rejects(createTelemetryStore(pool).insertRecord(WITH_SEQ), /lock failed/);
+    assert.equal(conn.calls.at(-1).text, "ROLLBACK");
+    assert.equal(released, 1);
+  });
+
+  test("given a Pool that cannot connect, it reports 503", async () => {
+    const pool = Object.create(pg.Pool.prototype);
+    pool.connect = async () => {
+      throw Object.assign(new Error("connect ECONNREFUSED"), { code: "ECONNREFUSED" });
+    };
+    await assert.rejects(
+      createTelemetryStore(pool).insertRecord(WITH_SEQ),
+      (err) => err instanceof ApiError && err.status === 503,
+    );
   });
 });
 

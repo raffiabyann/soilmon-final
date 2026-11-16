@@ -2,7 +2,7 @@
   "name": "soilmon-final",
   "private": true,
   "engines": {
-    "node": ">=20"
+    "node": ">=26"
   },
   "scripts": {
     "lint": "eslint .",

@@ -55,10 +55,10 @@ describe("user commands against PostgreSQL", { skip }, () => {
       hashApiKey(generateApiKey()),
       nodeId["itest-u1"],
     ]);
-    await client.query("INSERT INTO telemetry_records (node_id, raw_registers) VALUES ($1, $2::integer[])", [
-      nodeId["itest-u1"],
-      [1, 2, 3, 4, 5, 6, 7],
-    ]);
+    await client.query(
+      "INSERT INTO telemetry_records (node_id, r1, r2, r3, r4, r5, r6, r7) VALUES ($1, 1, 2, 3, 4, 5, 6, 7)",
+      [nodeId["itest-u1"]],
+    );
     return { nodeId, db: inSavepoint(client) };
   }
 
@@ -68,7 +68,7 @@ describe("user commands against PostgreSQL", { skip }, () => {
       "SELECT api_key_hash, node_id, revoked_at FROM device_credentials ORDER BY api_key_hash",
     );
     const telemetry = await client.query(
-      "SELECT id, node_id, received_at, raw_registers FROM telemetry_records ORDER BY id",
+      "SELECT id, node_id, received_at, r1, r2, r3, r4, r5, r6, r7, seq FROM telemetry_records ORDER BY id",
     );
     const config = await client.query("SELECT * FROM node_config ORDER BY node_id");
     return { keys: keys.rows, telemetry: telemetry.rows, config: config.rows };

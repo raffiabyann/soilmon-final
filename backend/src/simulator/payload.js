@@ -1,7 +1,8 @@
 // Payloads for the development simulator (01 FR-20, FR-21). They follow the same provisional
-// contract as the gateway: seven raw uint16 registers and the node's battery voltage.
+// contract as the gateway: seven raw uint16 registers, and optionally the node's battery voltage
+// and its packet counter (seq).
 
-import { RAW_REGISTER_MAX, isValidNodeCode } from "../telemetry/validate.js";
+import { RAW_REGISTER_MAX, SEQ_MAX, isValidNodeCode } from "../telemetry/validate.js";
 import { isWellFormedApiKey } from "../auth/apiKeys.js";
 
 // Starting point: the registers of the first manually sent record. Only the shape is reused;
@@ -14,6 +15,8 @@ export const DEFAULTS = Object.freeze({
   nodes: ["node-01"],
   intervalSeconds: 10,
   count: null,
+  battery: true,
+  seq: false,
 });
 
 // Moves each register by up to ±2% of its value (at least ±1), kept inside uint16.
@@ -31,14 +34,22 @@ export function nextBatteryVoltage(previous, random = Math.random) {
   return Math.round(Math.min(4.2, Math.max(2.8, next)) * 100) / 100;
 }
 
-// No measuredAt: the prototype gateway has no synchronised clock, so the server's received_at is
-// the only timestamp, as it will be for real gateway deliveries.
-export function buildPayload(nodeCode, rawRegisters, batteryVoltage) {
-  return { nodeCode, rawRegisters, batteryVoltage };
+// Like the node's counter: 16-bit, back to 0 after SEQ_MAX.
+export function nextSeq(previous) {
+  return previous >= SEQ_MAX ? 0 : previous + 1;
+}
+
+// No measuredAt: the gateway has no synchronised clock, so the server's received_at is the only
+// timestamp. batteryVoltage and seq are left out when undefined, as the current gateway does.
+export function buildPayload(nodeCode, rawRegisters, { batteryVoltage, seq } = {}) {
+  const payload = { nodeCode, rawRegisters };
+  if (batteryVoltage !== undefined) payload.batteryVoltage = batteryVoltage;
+  if (seq !== undefined) payload.seq = seq;
+  return payload;
 }
 
 // Returns { options, errors }. Accepts --url, --node (repeatable or comma-separated),
-// --interval seconds and --count ticks.
+// --interval seconds, --count ticks, --no-battery and --seq.
 export function parseArgs(argv) {
   const options = { ...DEFAULTS, nodes: [] };
   const errors = [];
@@ -55,7 +66,11 @@ export function parseArgs(argv) {
       return value;
     };
 
-    if (arg === "--url") {
+    if (arg === "--no-battery") {
+      options.battery = false;
+    } else if (arg === "--seq") {
+      options.seq = true;
+    } else if (arg === "--url") {
       const url = takeValue();
       if (url !== null) {
         try {

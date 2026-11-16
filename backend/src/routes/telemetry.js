@@ -37,13 +37,18 @@ export function createTelemetryRouter(store, { requireAuth, requireDeviceKey }) 
       ]);
     }
 
-    const record = await requireStore().insertRecord(value);
-    if (!record) {
+    const result = await requireStore().insertRecord(value);
+    if (!result) {
       throw new ApiError(422, "unknown_node", "The node is not registered.", [
         { field: "nodeCode", message: "is not a registered node" },
       ]);
     }
-    res.status(201).json({ data: record });
+    // A repeated seq is acknowledged so the gateway stops retrying, but nothing new is stored.
+    if (result.duplicate) {
+      res.status(200).json({ data: result.record, duplicate: true });
+      return;
+    }
+    res.status(201).json({ data: result.record });
   });
 
   router.get("/nodes", requireAuth, async (req, res) => {

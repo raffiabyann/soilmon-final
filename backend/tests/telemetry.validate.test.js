@@ -27,7 +27,16 @@ describe("validateTelemetryInput", () => {
       rawRegisters: REGISTERS,
       batteryVoltage: null,
       measuredAt: null,
+      seq: null,
     });
+  });
+
+  test("accepts seq at both ends of 0..65535, and null", () => {
+    for (const seq of [0, 65535, null]) {
+      const { value, errors } = validateTelemetryInput(valid({ seq }));
+      assert.deepEqual(errors, []);
+      assert.equal(value.seq, seq);
+    }
   });
 
   test("accepts a full record and parses measuredAt into a Date", () => {
@@ -89,6 +98,12 @@ describe("validateTelemetryInput", () => {
   for (const batteryVoltage of [-0.1, "3.3", Infinity, -Infinity, NaN, true]) {
     test(`rejects batteryVoltage ${String(batteryVoltage)}`, () => {
       assert.deepEqual(fields(validateTelemetryInput(valid({ batteryVoltage }))), ["batteryVoltage"]);
+    });
+  }
+
+  for (const seq of [-1, 65536, 1.5, "7", true, [1], Infinity]) {
+    test(`rejects seq ${JSON.stringify(seq) ?? String(seq)}`, () => {
+      assert.deepEqual(fields(validateTelemetryInput(valid({ seq }))), ["seq"]);
     });
   }
 

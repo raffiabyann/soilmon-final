@@ -79,7 +79,7 @@ function fakeStores(passwordHash) {
     telemetryStore: {
       async insertRecord(input) {
         calls.push(["insertRecord", input.nodeCode]);
-        return record(input.nodeCode);
+        return { record: record(input.nodeCode), duplicate: false };
       },
       async listNodes(user) {
         calls.push(["listNodes", user]);

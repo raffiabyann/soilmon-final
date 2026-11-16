@@ -1,5 +1,7 @@
 // Sends simulated telemetry to the backend, the way the gateway will. Usage:
 //   npm run simulate -- [--node node-01,node-02] [--interval 10] [--count 5] [--url http://localhost:3000]
+//                       [--no-battery] [--seq]
+// --no-battery sends no batteryVoltage, like the current gateway. --seq adds a per-node counter.
 // It only talks to the HTTP API; it never opens a database connection. Each node needs its device
 // key in SIMULATOR_API_KEYS (from npm run seed), in the environment or in .env.
 import {
@@ -8,6 +10,7 @@ import {
   buildPayload,
   nextBatteryVoltage,
   nextRegisters,
+  nextSeq,
   parseApiKeys,
   parseArgs,
 } from "../src/simulator/payload.js";
@@ -28,7 +31,7 @@ if (errors.length > 0) {
 const state = new Map(
   options.nodes.map((code) => [
     code,
-    { rawRegisters: [...BASE_REGISTERS], batteryVoltage: BASE_BATTERY_VOLTAGE },
+    { rawRegisters: [...BASE_REGISTERS], batteryVoltage: BASE_BATTERY_VOLTAGE, seq: null },
   ]),
 );
 const endpoint = `${options.url}/api/v1/telemetry`;
@@ -43,7 +46,13 @@ async function send(nodeCode) {
   const node = state.get(nodeCode);
   node.rawRegisters = nextRegisters(node.rawRegisters);
   node.batteryVoltage = nextBatteryVoltage(node.batteryVoltage);
-  const payload = buildPayload(nodeCode, node.rawRegisters, node.batteryVoltage);
+  node.seq = node.seq === null ? 0 : nextSeq(node.seq);
+  const payload = buildPayload(nodeCode, node.rawRegisters, {
+    batteryVoltage: options.battery ? node.batteryVoltage : undefined,
+    seq: options.seq ? node.seq : undefined,
+  });
+  const battery = payload.batteryVoltage === undefined ? "-" : `${payload.batteryVoltage.toFixed(2)} V`;
+  const seqText = payload.seq === undefined ? "" : ` seq=${payload.seq}`;
 
   try {
     const res = await fetch(endpoint, {
@@ -53,9 +62,9 @@ async function send(nodeCode) {
     });
     const body = await res.json().catch(() => null);
     if (res.status === 201) {
-      console.log(
-        `${clock()} ${nodeCode} 201 id=${body.data.id} [${payload.rawRegisters}] ${payload.batteryVoltage.toFixed(2)} V`,
-      );
+      console.log(`${clock()} ${nodeCode} 201 id=${body.data.id}${seqText} [${payload.rawRegisters}] ${battery}`);
+    } else if (res.status === 200 && body?.duplicate) {
+      console.log(`${clock()} ${nodeCode} 200 duplicate of id=${body.data.id}${seqText}`);
     } else if (res.status === 401) {
       console.log(`${clock()} ${nodeCode} 401 API key rejected: run npm run seed and update SIMULATOR_API_KEYS`);
     } else if (body?.error?.code === "unknown_node") {

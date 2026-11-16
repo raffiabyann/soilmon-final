@@ -19,7 +19,11 @@ const RECORD = {
   measuredAt: null,
   rawRegisters: [1, 2, 3, 4, 5, 6, 7],
   batteryVoltage: 3.31,
+  seq: null,
 };
+
+// Exactly what the gateway prints today: no batteryVoltage, no seq, no measuredAt.
+const GATEWAY_BODY = { nodeCode: "node-01", rawRegisters: [512, 268, 1200, 65, 30, 12, 45] };
 
 const VALID = { nodeCode: "node-01", rawRegisters: [1, 2, 3, 4, 5, 6, 7], batteryVoltage: 3.31 };
 
@@ -45,7 +49,7 @@ function get(baseUrl, path) {
 function freshState() {
   return {
     calls: [],
-    insertResult: RECORD,
+    insertResult: { record: RECORD, duplicate: false },
     listResult: { access: "granted", records: [RECORD] },
     nodesResult: [NODE],
     nodeResult: { access: "granted", node: NODE },
@@ -119,6 +123,42 @@ describe("telemetry routes", () => {
     assert.equal(name, "insertRecord");
     assert.equal(input.measuredAt.toISOString(), "2026-10-20T05:12:00.000Z");
     assert.deepEqual(input.rawRegisters, VALID.rawRegisters);
+  });
+
+  test("POST with the gateway's body (no batteryVoltage) is 201, stored with null battery and seq", async () => {
+    const stored = { ...RECORD, rawRegisters: GATEWAY_BODY.rawRegisters, batteryVoltage: null };
+    store.insertResult = { record: stored, duplicate: false };
+    const res = await post(baseUrl, GATEWAY_BODY);
+    assert.equal(res.status, 201);
+    assert.deepEqual(await res.json(), { data: stored });
+    const [[, input]] = store.calls;
+    assert.equal(input.batteryVoltage, null);
+    assert.equal(input.seq, null);
+    assert.deepEqual(input.rawRegisters, GATEWAY_BODY.rawRegisters);
+  });
+
+  test("POST with seq passes it to the store", async () => {
+    const res = await post(baseUrl, { ...GATEWAY_BODY, seq: 4096 });
+    assert.equal(res.status, 201);
+    assert.equal(store.calls[0][1].seq, 4096);
+  });
+
+  test("POST of a repeated seq is 200 with the earlier record and duplicate: true", async () => {
+    const earlier = { ...RECORD, seq: 7 };
+    store.insertResult = { record: earlier, duplicate: true };
+    const res = await post(baseUrl, { ...GATEWAY_BODY, seq: 7 });
+    assert.equal(res.status, 200);
+    assert.deepEqual(await res.json(), { data: earlier, duplicate: true });
+  });
+
+  test("POST with seq outside 0..65535 or not an integer is a 422 and nothing is stored", async () => {
+    for (const seq of [-1, 65536, 1.5, "7", true]) {
+      const res = await post(baseUrl, { ...GATEWAY_BODY, seq });
+      assert.equal(res.status, 422, `seq ${JSON.stringify(seq)}`);
+      const { error } = await res.json();
+      assert.deepEqual(error.details.map((d) => d.field), ["seq"]);
+    }
+    assert.equal(store.calls.length, 0);
   });
 
   test("POST rejects a contract violation with 422 and per-field details", async () => {
