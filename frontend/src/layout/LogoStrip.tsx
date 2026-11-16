@@ -1,3 +1,5 @@
+import { withBase } from "../lib/basePath";
+
 /**
  * Pita logo mitra di bagian atas (permintaan tim).
  * File logo ada di frontend/public/logos/ (PNG, latar transparan, tinggi 96 px).
@@ -12,10 +14,10 @@ interface PartnerLogo {
 }
 
 const PARTNER_LOGOS: readonly PartnerLogo[] = [
-  { name: "Hiliriset", src: "/logos/hiliriset.png" },
-  { name: "UMN", src: "/logos/umn.png" },
-  { name: "FTI", src: "/logos/fti.png" },
-  { name: "Dekatif", src: "/logos/dekatif.png" },
+  { name: "Hiliriset", src: withBase("/logos/hiliriset.png") },
+  { name: "UMN", src: withBase("/logos/umn.png") },
+  { name: "FTI", src: withBase("/logos/fti.png") },
+  { name: "Dekatif", src: withBase("/logos/dekatif.png") },
 ];
 
 export function LogoStrip() {

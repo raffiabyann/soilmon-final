@@ -5,6 +5,7 @@ import "@fontsource-variable/jetbrains-mono";
 import "./index.css";
 import { App } from "./App";
 import { BrowserRouter } from "react-router";
+import { routerBasename } from "./lib/basePath";
 
 const rootElement = document.getElementById("root");
 if (!rootElement) {
@@ -13,7 +14,7 @@ if (!rootElement) {
 
 createRoot(rootElement).render(
   <StrictMode>
-    <BrowserRouter>
+    <BrowserRouter basename={routerBasename}>
       <App />
     </BrowserRouter>
   </StrictMode>,

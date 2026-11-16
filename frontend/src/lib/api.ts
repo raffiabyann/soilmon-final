@@ -1,7 +1,9 @@
 import { endSession, getAccessToken, isAuthRole, saveSession, type AuthRole } from "./auth";
+import { withBase } from "./basePath";
 
 /**
- * Klien kecil untuk REST API backend (05 §6–7). Semua permintaan lewat proxy Vite: /api → backend.
+ * Klien kecil untuk REST API backend (05 §6–7). Path ditulis "/api/v1/..." lalu diberi sub-path
+ * deploy: dev lewat proxy Vite di /api, produksi lewat nginx di /soilmon/api.
  * Nilai register adalah data mentah: arti, signedness, skala, dan satuannya belum diverifikasi,
  * jadi klien ini tidak mengonversinya.
  *
@@ -96,7 +98,7 @@ async function request(
 
   let response: Response;
   try {
-    response = await fetch(path, {
+    response = await fetch(withBase(path), {
       method,
       headers,
       body: payload === undefined ? undefined : JSON.stringify(payload),
