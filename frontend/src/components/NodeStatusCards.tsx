@@ -1,6 +1,6 @@
-import { OFFLINE_AFTER_MINUTES, isOnline } from "@soilmon/shared";
+import { OFFLINE_AFTER_MINUTES, REGISTER_SPECS, formatRegister, isOnline } from "@soilmon/shared";
 import { Battery, Clock } from "lucide-react";
-import { REGISTER_LABELS, describeApiError, fetchNodeTelemetry, type ApiNode } from "../lib/api";
+import { describeApiError, fetchNodeTelemetry, type ApiNode } from "../lib/api";
 import { formatAgo, formatDateTimeWib } from "../lib/time";
 import { useNow } from "../lib/useNow";
 import { DASHBOARD_REFRESH_MS, usePolling, type Polled } from "../lib/usePolling";
@@ -8,7 +8,7 @@ import { Badge } from "./Badge";
 import { Card } from "./Card";
 import { CardLabel } from "./CardLabel";
 
-/** Status dari GET /nodes; baterai dan register dari paket terakhir (telemetry?limit=1). */
+/** Status dari GET /nodes; baterai dan nilai sensor dari paket terakhir (telemetry?limit=1). */
 export function NodeStatusCards({ nodes }: { nodes: Polled<ApiNode[]> }) {
   const now = useNow(DASHBOARD_REFRESH_MS);
 
@@ -157,23 +157,37 @@ function LatestPacket({ nodeCode, backendFailing }: { nodeCode: string; backendF
         </p>
       </div>
       <div>
-        <CardLabel>Register mentah</CardLabel>
-        <dl className="mt-2 grid grid-cols-4 gap-x-3 gap-y-3">
-          {REGISTER_LABELS.map((label, i) => (
-            <div key={label}>
-              <dt className="font-mono text-[11px] text-ink-muted">{label}</dt>
-              <dd className="font-mono text-sm text-ink tabular-nums">
-                {record.rawRegisters[i] === undefined ? (
-                  <>
-                    <span aria-hidden>-</span>
-                    <span className="sr-only">tidak ada</span>
-                  </>
-                ) : (
-                  record.rawRegisters[i]
-                )}
-              </dd>
-            </div>
-          ))}
+        <CardLabel>Nilai sensor</CardLabel>
+        <dl className="mt-2 grid grid-cols-3 gap-x-3 gap-y-4 sm:grid-cols-4">
+          {REGISTER_SPECS.map((spec, i) => {
+            const raw = record.rawRegisters[i];
+            const value = formatRegister(i, raw);
+            return (
+              <div key={spec.raw} className="min-w-0">
+                <dt className="truncate text-[11px] font-semibold text-ink-muted">{spec.label}</dt>
+                <dd className="text-ink tabular-nums">
+                  {value === null ? (
+                    <>
+                      <span aria-hidden>-</span>
+                      <span className="sr-only">tidak ada</span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="text-base font-bold">{value}</span>
+                      {spec.unit && (
+                        <span className="ml-1 text-xs font-semibold text-ink-muted">
+                          {spec.unit}
+                        </span>
+                      )}
+                    </>
+                  )}
+                </dd>
+                <dd className="font-mono text-[11px] text-ink-muted">
+                  {spec.raw} {raw ?? "-"}
+                </dd>
+              </div>
+            );
+          })}
         </dl>
       </div>
       {latest.error && !backendFailing && (

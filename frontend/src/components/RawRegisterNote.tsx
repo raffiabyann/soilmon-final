@@ -1,6 +1,6 @@
 import { Info } from "lucide-react";
 
-/** Catatan tetap di setiap tempat yang menampilkan R1 sampai R7: nilainya belum bermakna. */
+/** Catatan tetap di setiap tempat yang menampilkan nilai hasil konversi R1 sampai R7. */
 export function RawRegisterNote() {
   return (
     <p
@@ -9,9 +9,8 @@ export function RawRegisterNote() {
     >
       <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
       <span>
-        R1 sampai R7 adalah register mentah dari node (bilangan bulat 0 sampai 65535) dan belum
-        dikalibrasi. Arti, skala, dan satuan register belum diverifikasi, jadi nilainya tidak diubah
-        menjadi suhu, kelembapan, atau pH.
+        Nilai dihitung dengan mapping register dari firmware gateway. Mapping ini belum diverifikasi
+        dengan datasheet sensor, jadi nilai mentah R1 sampai R7 tetap ditampilkan.
       </span>
     </p>
   );

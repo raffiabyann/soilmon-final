@@ -1,3 +1,4 @@
+import { REGISTER_SPECS, formatRegister, type RegisterSpec } from "@soilmon/shared";
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
 import { Card } from "../components/Card";
@@ -8,7 +9,6 @@ import { Segmented } from "../components/Segmented";
 import { TextField } from "../components/TextField";
 import {
   ApiError,
-  REGISTER_LABELS,
   describeApiError,
   fetchNodeTelemetry,
   fetchNodes,
@@ -20,12 +20,38 @@ import { useLoad } from "../lib/useLoad";
 
 /** Paket per permintaan. Batas backend 500; 50 adalah nilai bawaannya. */
 const PAGE_LIMIT = 50;
-const REGISTER_COUNT = REGISTER_LABELS.length;
+const REGISTER_COUNT = REGISTER_SPECS.length;
+
+type ValueView = "unit" | "raw";
+
+const VIEW_OPTIONS = [
+  { value: "unit", label: "Nilai bersatuan" },
+  { value: "raw", label: "Tampilkan raw" },
+] as const;
+
+/** Simbol yang berubah arti bila dikapitalkan; judul lain tetap ikut label-mono. */
+const KEEP_CASE_LABELS = new Set(["pH"]);
+
+/**
+ * label-mono mengapitalkan teks, sehingga "µS/cm" tampil "MS/CM" (terbaca milliSiemens).
+ * Satuan dan simbol seperti pH memakai normal-case.
+ */
+function RegisterHeading({ spec }: { spec: RegisterSpec }) {
+  return (
+    <>
+      <span className={KEEP_CASE_LABELS.has(spec.label) ? "normal-case" : undefined}>
+        {spec.label}
+      </span>
+      {spec.unit && <span className="normal-case"> ({spec.unit})</span>}
+    </>
+  );
+}
 
 export function HistoryPage() {
   const [params, setParams] = useSearchParams();
   const [fromText, setFromText] = useState("");
   const [toText, setToText] = useState("");
+  const [view, setView] = useState<ValueView>("unit");
 
   // GET /nodes hanya berisi node yang boleh dibaca pengguna ini; admin mendapat semuanya.
   const nodes = useLoad(fetchNodes, "nodes");
@@ -60,12 +86,20 @@ export function HistoryPage() {
       ) : (
         <>
           <Card padded={false} className="space-y-4 px-4 py-4">
-            <Segmented
-              ariaLabel="Pilih node"
-              value={node.code}
-              onChange={(code) => setParams({ node: code })}
-              options={list.map((n) => ({ value: n.code, label: n.code }))}
-            />
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <Segmented
+                ariaLabel="Pilih node"
+                value={node.code}
+                onChange={(code) => setParams({ node: code })}
+                options={list.map((n) => ({ value: n.code, label: n.code }))}
+              />
+              <Segmented
+                ariaLabel="Tampilan nilai sensor"
+                value={view}
+                onChange={setView}
+                options={VIEW_OPTIONS}
+              />
+            </div>
             <div className="flex flex-wrap items-end gap-4">
               <TextField
                 className="min-w-0 flex-1 basis-56"
@@ -111,6 +145,7 @@ export function HistoryPage() {
               node={node}
               from={from}
               to={to}
+              view={view}
               onClearRange={
                 filtered
                   ? () => {
@@ -135,11 +170,13 @@ function HistoryResults({
   node,
   from,
   to,
+  view,
   onClearRange,
 }: {
   node: ApiNode;
   from: string | null;
   to: string | null;
+  view: ValueView;
   onClearRange: (() => void) | null;
 }) {
   const nodeCode = node.code;
@@ -248,7 +285,10 @@ function HistoryResults({
       <Card padded={false} className="overflow-x-auto p-2">
         <table className="w-full min-w-[920px] text-left text-sm">
           <caption className="sr-only">
-            Paket telemetry node {nodeCode}, terbaru di atas. R1 sampai R7 adalah register mentah.
+            Paket telemetry node {nodeCode}, terbaru di atas.{" "}
+            {view === "raw"
+              ? "R1 sampai R7 adalah register mentah."
+              : "Nilai sensor memakai mapping yang belum diverifikasi datasheet."}
           </caption>
           <thead>
             <tr className="label-mono [&>th]:bg-canvas [&>th]:px-4 [&>th]:py-3 [&>th]:font-medium">
@@ -259,13 +299,13 @@ function HistoryResults({
               <th scope="col" className="text-right">
                 Baterai (V)
               </th>
-              {REGISTER_LABELS.map((label, i) => (
+              {REGISTER_SPECS.map((spec, i) => (
                 <th
-                  key={label}
+                  key={spec.raw}
                   scope="col"
-                  className={`text-right ${i === REGISTER_COUNT - 1 ? "rounded-r-xl" : ""}`}
+                  className={`text-right whitespace-nowrap ${i === REGISTER_COUNT - 1 ? "rounded-r-xl" : ""}`}
                 >
-                  {label}
+                  {view === "raw" ? spec.raw : <RegisterHeading spec={spec} />}
                 </th>
               ))}
             </tr>
@@ -285,11 +325,23 @@ function HistoryResults({
                 <td className="text-right font-mono text-xs tabular-nums text-ink">
                   {r.batteryVoltage === null ? <Missing /> : r.batteryVoltage.toFixed(2)}
                 </td>
-                {REGISTER_LABELS.map((label, i) => (
-                  <td key={label} className="text-right font-mono text-xs tabular-nums text-ink">
-                    {r.rawRegisters[i] === undefined ? <Missing /> : r.rawRegisters[i]}
-                  </td>
-                ))}
+                {REGISTER_SPECS.map((spec, i) => {
+                  const raw = r.rawRegisters[i];
+                  const shown = view === "raw" ? raw : formatRegister(i, raw);
+                  return (
+                    <td
+                      key={spec.raw}
+                      title={
+                        view === "unit" && raw !== undefined
+                          ? `${spec.raw} mentah: ${raw}`
+                          : undefined
+                      }
+                      className="text-right font-mono text-xs tabular-nums text-ink"
+                    >
+                      {shown === undefined || shown === null ? <Missing /> : shown}
+                    </td>
+                  );
+                })}
               </tr>
             ))}
           </tbody>
