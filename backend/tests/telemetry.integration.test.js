@@ -113,11 +113,11 @@ describe("telemetry store against PostgreSQL", () => {
       await client.query("ROLLBACK TO SAVEPOINT bad_insert");
     }));
 
-  // Each test's transaction fixes now(), so "10 minutes ago" is moved by editing received_at.
-  async function insertSeq(store, nodeCode, seq) {
+  // Each test's transaction fixes now(), so "2 minutes ago" is moved by editing received_at.
+  async function insertSeq(store, nodeCode, seq, rawRegisters = [1, 2, 3, 4, 5, 6, 7]) {
     return store.insertRecord({
       nodeCode,
-      rawRegisters: [1, 2, 3, 4, 5, 6, 7],
+      rawRegisters,
       batteryVoltage: null,
       measuredAt: null,
       seq,
@@ -132,7 +132,7 @@ describe("telemetry store against PostgreSQL", () => {
     return rows[0].n;
   }
 
-  test("the same node and seq within 10 minutes is stored once and reported as a duplicate", { skip }, () =>
+  test("the same node, seq and registers within 2 minutes is stored once and reported as a duplicate", { skip }, () =>
     inRollback(async (store) => {
       await client.query("INSERT INTO nodes (code) VALUES ('itest-seq')");
       const first = await insertSeq(store, "itest-seq", 300);
@@ -144,11 +144,22 @@ describe("telemetry store against PostgreSQL", () => {
       assert.equal(await countFor("itest-seq"), 1);
     }));
 
-  test("the same seq is stored again once the earlier record is older than 10 minutes", { skip }, () =>
+  test("the same seq with other registers is a new packet, as after a node reboot", { skip }, () =>
+    inRollback(async (store) => {
+      await client.query("INSERT INTO nodes (code) VALUES ('itest-seq')");
+      const first = await insertSeq(store, "itest-seq", 1, [1, 2, 3, 4, 5, 6, 7]);
+      const after = await insertSeq(store, "itest-seq", 1, [1, 2, 3, 4, 5, 6, 8]);
+      assert.equal(after.duplicate, false);
+      assert.notEqual(after.record.id, first.record.id);
+      assert.deepEqual(after.record.rawRegisters, [1, 2, 3, 4, 5, 6, 8]);
+      assert.equal(await countFor("itest-seq"), 2);
+    }));
+
+  test("the same seq and registers are stored again once the earlier record is older than 2 minutes", { skip }, () =>
     inRollback(async (store) => {
       await client.query("INSERT INTO nodes (code) VALUES ('itest-seq')");
       const first = await insertSeq(store, "itest-seq", 0);
-      await client.query("UPDATE telemetry_records SET received_at = now() - interval '11 minutes' WHERE id = $1", [
+      await client.query("UPDATE telemetry_records SET received_at = now() - interval '3 minutes' WHERE id = $1", [
         first.record.id,
       ]);
       const after = await insertSeq(store, "itest-seq", 0);

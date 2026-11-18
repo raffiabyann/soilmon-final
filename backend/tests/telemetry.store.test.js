@@ -128,9 +128,10 @@ describe("telemetry store: insertRecord with seq", () => {
     assert.deepEqual(node.params, ["node-01"]);
     assert.match(lock.text, /pg_advisory_xact_lock\(\d+, /);
     assert.deepEqual(lock.params, ["9"]);
-    assert.deepEqual(dup.params, ["9", 42]);
+    assert.deepEqual(dup.params, ["9", 42, [1, 2, 3, 4, 5, 6, 7]]);
+    assert.match(dup.text, /ARRAY\[r1, r2, r3, r4, r5, r6, r7\] = \$3::integer\[\]/);
     assert.ok(dup.text.includes(`now() - interval '${DUPLICATE_WINDOW_MINUTES} minutes'`), dup.text);
-    assert.equal(DUPLICATE_WINDOW_MINUTES, 10);
+    assert.equal(DUPLICATE_WINDOW_MINUTES, 2);
     assert.deepEqual(insert.params, ["node-01", null, [1, 2, 3, 4, 5, 6, 7], null, 42]);
   });
 

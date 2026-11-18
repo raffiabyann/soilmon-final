@@ -31,7 +31,9 @@ const INSERT_RECORD = `
 
 // Two-key form, so it cannot collide with the migration runner's single-key lock.
 export const SEQ_LOCK_CLASS = 7391002;
-export const DUPLICATE_WINDOW_MINUTES = 10;
+// A retry carries identical registers and arrives within seconds. A node restarts seq at 1 on
+// reboot, so the same seq with other registers, or after the window, is a new packet.
+export const DUPLICATE_WINDOW_MINUTES = 2;
 
 const FIND_NODE_ID = "SELECT id FROM nodes WHERE code = $1::text";
 // Folding the id into int4 can only make two nodes share a lock, never skip one.
@@ -40,6 +42,7 @@ const FIND_DUPLICATE = `
   SELECT ${RECORD_COLUMNS}
   FROM telemetry_records
   WHERE node_id = $1 AND seq = $2::integer
+    AND ARRAY[r1, r2, r3, r4, r5, r6, r7] = $3::integer[]
     AND received_at > now() - interval '${DUPLICATE_WINDOW_MINUTES} minutes'
   ORDER BY received_at DESC, id DESC
   LIMIT 1`;
@@ -142,8 +145,8 @@ export function createTelemetryStore(db) {
     },
 
     // Returns { record, duplicate }, or null when nodeCode is not a registered node.
-    // With a seq, the same node and seq within DUPLICATE_WINDOW_MINUTES is not stored again:
-    // the earlier record is returned with duplicate: true.
+    // With a seq, the same node, seq and registers within DUPLICATE_WINDOW_MINUTES is not stored
+    // again: the earlier record is returned with duplicate: true.
     async insertRecord({ nodeCode, rawRegisters, batteryVoltage, measuredAt, seq = null }) {
       const params = [nodeCode, measuredAt, rawRegisters, batteryVoltage, seq];
       if (seq === null) {
@@ -155,7 +158,7 @@ export function createTelemetryStore(db) {
         if (node.rows.length === 0) return null;
         const nodeId = node.rows[0].id;
         await tx(LOCK_NODE, [nodeId]);
-        const earlier = await tx(FIND_DUPLICATE, [nodeId, seq]);
+        const earlier = await tx(FIND_DUPLICATE, [nodeId, seq, rawRegisters]);
         if (earlier.rows.length > 0) {
           return { record: toRecord(earlier.rows[0], nodeCode), duplicate: true };
         }
